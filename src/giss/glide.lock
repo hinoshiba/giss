@@ -1,0 +1,15 @@
+hash: a7342d49f9485e072264d6e909ee0ddba40b01cb63850fbf2dccdf5c47ac80d0
+updated: 2018-10-18T03:26:32.719667885+09:00
+imports:
+- name: github.com/BurntSushi/toml
+  version: 3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005
+- name: golang.org/x/crypto
+  version: 0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/sys
+  version: fa43e7bc11baaae89f3f902b2b4d832b68234844
+  subpackages:
+  - unix
+  - windows
+testImports: []
