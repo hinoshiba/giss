@@ -1,0 +1,9 @@
+package: giss
+import:
+        - package: github.com/BurntSushi/toml
+#- package: hogehoge.com/hoge
+#  version: ^1.0.0
+#  subpackages
+#  - hogehoge
+ignore:
+        - giss
