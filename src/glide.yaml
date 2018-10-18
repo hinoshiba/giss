@@ -1,6 +1,8 @@
 package: giss
 import:
         - package: github.com/BurntSushi/toml
+        - package: golang.org/x/crypto/ssh/terminal
+        - package: golang.org/x/sys/unix
 #- package: hogehoge.com/hoge
 #  version: ^1.0.0
 #  subpackages

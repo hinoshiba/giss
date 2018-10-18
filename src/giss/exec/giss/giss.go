@@ -58,35 +58,11 @@ func ComLogin() error {
 		return err
  	}
 
-	url := "https://www.ds.i.hinoshiba.com/gitea/api/v1/users/s.k.noe/tokens"
-	jsonStr := `{"name":"giss"}`
-    	req, err := http.NewRequest(
-        	"POST",
-        	url,
-        	bytes.NewBuffer([]byte(jsonStr)),
-    	)
-	req.SetBasicAuth(user, string(pass))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	client := newClient()
-	resp, err := client.Do(req)
-	if err != nil {
-       		return err
-    	}
-    	defer resp.Body.Close()
-	bodyText, err := ioutil.ReadAll(resp.Body)
-	fmt.Printf(string(bodyText))
+
 
 	return nil
 }
-func newClient() *http.Client {
-    tr := &http.Transport{
-        TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
-    }
-    return &http.Client{Transport: tr}
-}
+
 
 func ComVersion() error {
 	fmt.Printf("%s\n",values.VersionText)
