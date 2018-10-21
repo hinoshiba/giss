@@ -8,11 +8,13 @@ import (
 type Config struct {
 	Body BodyConfig
 	Mail MailConfig
+	GitDefault  GitDefaultConfig
+	Giss GissConfig
 }
 
 type BodyConfig struct {
-	Header string `toml:"header"`
-	Futter string `toml:"futter"`
+	Header string `toml:"Header"`
+	Futter string `toml:"Futter"`
 }
 
 type MailConfig struct {
@@ -21,6 +23,14 @@ type MailConfig struct {
 	Bcc string `toml:"Bcc"`
 	From string `toml:"From"`
 
+}
+
+type GitDefaultConfig struct {
+	Url string `toml:"URL"`
+}
+
+type GissConfig struct {
+	Editor string `toml:"editor"`
 }
 
 var Rc Config
