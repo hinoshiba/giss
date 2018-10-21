@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"bufio"
+	"strings"
 )
 
 var Token string
+var User string
 var CurrentGit string
 var CacheDir string
 var TmpDir string
@@ -21,25 +23,60 @@ func LoadCaches() error {
 	return loadCaches(homeDir)
 }
 
+func SaveCred(username string, token string) error {
+	return saveCred(username, token)
+}
+
+func saveCurrentGit(giturl string) error {
+	path := CacheDir + "/.currentgit"
+
+	if err := writeParam(path, giturl); err != nil {
+		return err
+	}
+	if err := loadCaches(CacheDir); err != nil {
+		return err
+	}
+	return nil
+}
+
+func saveCred(username string, token string) error {
+	cred := username + "," + token
+	path := CacheDir + "/.cred"
+
+	if err := writeParam(path, cred); err != nil {
+		return err
+	}
+	if err := loadCaches(CacheDir); err != nil {
+		return err
+	}
+	return nil
+}
+
 func loadCaches(dir string) error {
 	fpath, err := filepath.Abs(dir)
 	if err != nil {
 		return nil
 	}
 
-	if err := initCacheDir(fpath); err != nil {
-		return err
+	if CacheDir == "" {
+		if err := initCacheDir(fpath); err != nil {
+			return err
+		}
 	}
 
-	tfile := CacheDir + "/.token"
-	token, err := loadParam(tfile)
+	cfile := CacheDir + "/.cred"
+	fcreds, err := loadParam(cfile)
 	if err != nil {
 		return err
 	}
-	Token = token
+	creds := strings.Split(fcreds, ",")
+	if len(creds) == 2 {
+		User = creds[0]
+		Token = creds[1]
+	}
 
-	cfile := CacheDir + "/.currentgit"
-	currentgit, err := loadParam(cfile)
+	cafile := CacheDir + "/.currentgit"
+	currentgit, err := loadParam(cafile)
 	if err != nil {
 		return err
 	}
@@ -95,6 +132,19 @@ func read1stLine(path string) (string, error) {
 		ret = s.Text()
 	}
 	return ret, nil
+}
+
+func writeParam(pfile string, param string) error {
+	f, err := os.Create(pfile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := f.Write([]byte(param)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getHomeDir() (string, error) {
