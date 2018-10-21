@@ -35,6 +35,8 @@ func giss() error {
 	switch RunMode {
 	case "test":
 		err = ComTest()
+	case "create":
+		err = ComCreate()
 	case "close":
 		err = ComClose(Options)
 	case "open":
@@ -64,6 +66,14 @@ func ComTest() error {
 	}
 
 	fmt.Printf("%s",string(ret))
+	return nil
+}
+
+func ComCreate() error {
+	err := Git.CreateIssue()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

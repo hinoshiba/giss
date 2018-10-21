@@ -1,13 +1,17 @@
 package apicon
 
 import (
+	"os"
 	"fmt"
 	"time"
 	"bytes"
+	"bufio"
+	"strings"
 	"net/http"
 	"crypto/tls"
 	"io/ioutil"
 	"encoding/json"
+	"github.com/hinoshiba/go-editor/editor"
 )
 
 type JsonToken struct {
@@ -84,9 +88,11 @@ func (self *Gitea) IsLogined() bool {
 
 func (self *Gitea) isLogined() bool {
 	if self.Token == "" {
+		fmt.Printf("not login\n")
 		return false
 	}
 	if self.User == "" {
+		fmt.Printf("not login\n")
 		return false
 	}
 	return true
@@ -136,11 +142,76 @@ func (self *Gitea) login(username, passwd string) error {
 	return nil
 }
 
+func (self *Gitea) CreateIssue() error {
+	if !self.isLogined() {
+		return nil
+	}
+	return self.createIssue()
+}
+
+func (self *Gitea) editIssue(issue *Issue) error {
+	for {
+		fmt.Printf("Title : %s\n", issue.Title)
+		fmt.Printf("Body ------->  \n%s\n", issue.Body)
+		fmt.Printf("-----------------------END--------------------\n\n")
+		fmt.Printf("Menu : title : t , body : b , done : done\n")
+		menu, err := inputString("Please enter the menu (or cancel) >>")
+		if err != nil {
+			return err
+		}
+		switch menu {
+		case "t":
+			b, err := editor.Call("vim", []byte(issue.Title))
+			if err != nil {
+				return err
+			}
+			issue.Title = string(b)
+			fmt.Printf("title eddited\n")
+		case "b":
+			b, err := editor.Call("vim", []byte(issue.Body))
+			if err != nil {
+				return err
+			}
+			issue.Body = string(b)
+			fmt.Printf("body eddited\n")
+		case "done":
+			fmt.Printf("done...\n")
+		case "cancel":
+			fmt.Printf("Cancel was pressed.quitting...\n")
+			return nil
+		default:
+			fmt.Printf("undefined command\n")
+		}
+		if menu == "done" {
+			return nil
+		}
+		fmt.Printf("=========================================\n")
+	}
+	return nil
+}
+
+func (self *Gitea) createIssue() error {
+	var issue Issue
+	if err := self.editIssue(&issue); err != nil {
+		return err
+	}
+	if err := self.createPostIssue(&issue); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (self *Gitea) DoCloseIssue(inum string) error {
+	if !self.isLogined() {
+		return nil
+	}
 	return self.doCloseIssue(inum)
 }
 
 func (self *Gitea) DoOpenIssue(inum string) error {
+	if !self.isLogined() {
+		return nil
+	}
 	return self.doOpenIssue(inum)
 }
 
@@ -178,7 +249,7 @@ func (self *Gitea) toggleIssueState(inum string, state string) error {
 
 	old := issue.Update
 	issue.State = state
-	if err := self.postIssue(inum, &issue); err != nil {
+	if err := self.updatePostIssue(inum, &issue); err != nil {
 		return err
 	}
 	if old == issue.Update {
@@ -224,16 +295,22 @@ func (self *Gitea) printIssue(inum string, detailprint bool) error {
 	return nil
 }
 
+func (self *Gitea) updatePostIssue(inum string, issue *Issue) error {
+	return self.postIssue("PATCH", inum, issue)
+}
 
+func (self *Gitea) createPostIssue(issue *Issue) error {
+	return self.postIssue("POST", "", issue)
+}
 
-func (self *Gitea) postIssue(inum string, issue *Issue) error {
+func (self *Gitea) postIssue(method string , inum string, issue *Issue) error {
 	url := self.Url + "api/v1/repos/" + self.Repo + "/issues/" + inum
 
 	ijson, err := json.Marshal(convIssueEdited(*issue))
 	if err != nil {
 		return err
 	}
-	iret, rcode, err := self.reqHttp("PATCH", url, []byte(ijson))
+	iret, rcode, err := self.reqHttp(method, url, []byte(ijson))
 	if err != nil {
 		return err
 	}
@@ -413,6 +490,18 @@ func convIssueEdited(issue Issue) IssueEdited {
 	nissue.Assgin = issue.Assgin
 
 	return nissue
+}
+
+func  inputString(menu string) (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf(menu)
+    	istr, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+
+	iline := strings.Trim(istr, " \n")
+	return iline, nil
 }
 
 func newClient() *http.Client {
