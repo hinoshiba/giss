@@ -10,7 +10,6 @@ import (
 	"giss/cache"
 	"giss/values"
 	"giss/apicon"
-	"github.com/hinoshiba/go-editor/editor"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -64,12 +63,17 @@ func giss() error {
 }
 
 func ComTest() error {
-	ret, err := editor.Call("vim",[]byte("aaaaaaaa"))
+	report, err := Git.ReportIssues()
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%s",string(ret))
+	report_str := config.Rc.Body.Header
+	for i, v := range report {
+		report_str += "■ "+ i + "\n"
+		report_str += v
+	}
+	report_str += config.Rc.Body.Header
+	fmt.Printf("%s",report_str)
 	return nil
 }
 

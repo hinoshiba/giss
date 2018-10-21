@@ -68,6 +68,8 @@ type IssueMilestone struct {
 }
 
 var TokenName string = "giss"
+var ReportNewTag string = "+"
+var ReportTaskTag string = "-"
 
 type Gitea struct {
 	Url string
@@ -418,6 +420,72 @@ func (self *Gitea) printIssues(limit int, withclose bool) error {
 	return nil
 }
 
+func (self *Gitea) ReportIssues() (map[string]string, error) {
+	now := time.Now()
+	iss, err := self.getIssues(true)
+	if err != nil {
+		return nil, err
+	}
+	if len(iss) < 1 {
+		return nil, nil
+	}
+
+	ret := make(map[string]string)
+	newtag := dayAgo(now, -7)
+	limit := dayAgo(now, -14)
+	for _, is := range iss {
+		if is.Update.Unix() < limit.Unix() {
+			continue
+		}
+
+		time.Sleep(50 * time.Millisecond)
+		ir, err := self.reportIssue(newtag, &is)
+		if err != nil {
+			return nil, err
+		}
+		if is.Milestone.Title == "" {
+			ret["none"] += ir
+			continue
+		}
+		ret[is.Milestone.Title] += ir
+	}
+	return ret, nil
+}
+
+func (self *Gitea) reportIssue(newtag time.Time, is *Issue) (string, error) {
+	ir := "  - "
+	if is.Update.Unix() >= newtag.Unix() {
+		ir = "+ - "
+	}
+	if is.State == "closed" {
+		ir += "[closed] "
+	}
+	ir += fmt.Sprintf("#%v ",is.Num) + lf2space(onlyLF(is.Title)) + "\n"
+	for _, row := range strings.Split(onlyLF(is.Body),"\n") {
+		ir += makeWithin80c(false,6 ,row)
+	}
+
+	_, coms, err := self.getIssue(fmt.Sprintf("%v",is.Num))
+	if err != nil {
+		return "", err
+	}
+	for _, com := range coms {
+		cr := "    -  "
+		if com.Update.Unix() >= newtag.Unix() {
+		cr = "+   -  "
+		}
+		for i, row := range strings.Split(onlyLF(com.Body),"\n") {
+		if i == 0 {
+			cr += makeWithin80c(true, 5, row)
+			continue
+		}
+		cr += makeWithin80c(false, 5, row)
+		}
+		ir += cr
+	}
+	return ir, nil
+}
+
 func (self *Gitea) getIssues(withclose bool) ([]Issue, error) {
 	url := self.Url + "api/v1/repos/" + self.Repo + "/issues"
 	if withclose {
@@ -622,4 +690,32 @@ func lf2space(str string) string {
 	return strings.NewReplacer(
 		"\n", " ",
 	).Replace(str)
+}
+
+func dayAgo(t time.Time, ago int) time.Time {
+	bw := t.AddDate(0, 0, ago)
+	y, m, d := bw.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+}
+
+func makeWithin80c(inithead bool, hs int, str string) string {
+	hatspace := strings.Repeat(" ", hs) + "| "
+	splen := 80
+    	runes := []rune(str)
+	var ret string
+
+	for i := 0; i < len(runes); i += splen {
+		tmphat := hatspace
+		if inithead && i == 0 {
+			tmphat = ""
+		}
+		if i+splen < len(runes) {
+			r := tmphat + string(runes[i:(i + splen)])
+			ret += lf2space(onlyLF(r)) + "\n"
+		} else {
+			r := tmphat + string(runes[i:])
+			ret += lf2space(onlyLF(r)) + "\n"
+        	}
+    	}
+	return ret
 }

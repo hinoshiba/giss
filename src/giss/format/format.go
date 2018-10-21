@@ -1,7 +1,0 @@
-package format
-
-
-
-func init() {
-
-}
