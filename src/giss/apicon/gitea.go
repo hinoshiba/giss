@@ -186,6 +186,29 @@ func (self *Gitea) modifyIssue(inum string) error {
 	return nil
 }
 
+func (self *Gitea) AddIssueComment(inum string) error {
+	if !self.isLogined() {
+		return nil
+	}
+	return self.modifyIssue(inum)
+}
+
+func (self *Gitea) addIssueComment(inum string) error {
+	menu, err := inputString("To continue press the enter key....")
+	if err != nil {
+		return err
+	}
+	if menu != "\n" {
+		return nil
+	}
+
+	comment, err := editor.Call("vim", []byte(""))
+	if err := self.postComment("POST", inum, string(comment)); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (self *Gitea) DoCloseIssue(inum string) error {
 	if !self.isLogined() {
 		return nil
@@ -292,6 +315,8 @@ func (self *Gitea) postIssue(method string , inum string, issue *Issue) error {
 	url := self.Url + "api/v1/repos/" + self.Repo + "/issues/" + inum
 
 	issue.Update = time.Now()
+	issue.Title = lf2space(onlyLF(issue.Title))
+	issue.Body = onlyLF(issue.Body)
 	ijson, err := json.Marshal(convIssueEdited(*issue))
 	if err != nil {
 		return err
@@ -309,6 +334,22 @@ func (self *Gitea) postIssue(method string , inum string, issue *Issue) error {
 		return err
 	}
 	fmt.Printf("issue posted : #%v\n",issue.Num)
+	return nil
+}
+
+func (self *Gitea) postComment(method string , inum string, body string) error {
+	url := self.Url + "api/v1/repos/" + self.Repo +
+						"/issues/" + inum + "comments/"
+	json_str := `{"body":"`+ body + `"}`
+
+	_, rcode, err := self.reqHttp(method, url, []byte(json_str))
+	if err != nil {
+		return err
+	}
+	if rcode != 201 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil
+	}
 	return nil
 }
 
@@ -434,11 +475,11 @@ func (self *Gitea) getDefinedToken(username, passwd string) (string, error) {
 
 func (self *Gitea) createReqToken(username, passwd string) (string, error) {
 	url := self.Url + "api/v1/users/" + username + "/tokens"
-	jsonStr := `{"name":"`+ TokenName + `"}`
+	json_str := `{"name":"`+ TokenName + `"}`
     	req, err := http.NewRequest(
         	"POST",
         	url,
-        	bytes.NewBuffer([]byte(jsonStr)),
+        	bytes.NewBuffer([]byte(json_str)),
     	)
 	req.SetBasicAuth(username, passwd)
 	req.Header.Set("Content-Type", "application/json")
@@ -564,3 +605,15 @@ func (self *Gitea) reqHttp(method, url string, param []byte ) ([]byte,
 	return bytes, resp.StatusCode, nil
 }
 
+func onlyLF(str string) string {
+	return strings.NewReplacer(
+		"\r\n", "\n",
+		"\r", "\n",
+	).Replace(str)
+}
+
+func lf2space(str string) string {
+	return strings.NewReplacer(
+		"\n", " ",
+	).Replace(str)
+}

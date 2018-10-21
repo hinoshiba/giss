@@ -39,6 +39,8 @@ func giss() error {
 		err = ComCreate()
 	case "close":
 		err = ComClose(Options)
+	case "comment":
+		err = ComComment(Options)
 	case "edit":
 		err = ComEdit(Options)
 	case "open":
@@ -77,6 +79,17 @@ func ComEdit(options []string) error {
 		return nil
 	}
 	if err := Git.ModifyIssue(options[0]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ComComment(options []string) error {
+	if len(options) < 1 {
+		fmt.Printf("can't detect issue number\n")
+		return nil
+	}
+	if err := Git.AddIssueComment(options[0]); err != nil {
 		return err
 	}
 	return nil
