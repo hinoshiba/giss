@@ -190,7 +190,7 @@ func (self *Gitea) AddIssueComment(inum string) error {
 	if !self.isLogined() {
 		return nil
 	}
-	return self.modifyIssue(inum)
+	return self.addIssueComment(inum)
 }
 
 func (self *Gitea) addIssueComment(inum string) error {
@@ -198,7 +198,7 @@ func (self *Gitea) addIssueComment(inum string) error {
 	if err != nil {
 		return err
 	}
-	if menu != "\n" {
+	if menu != "" {
 		return nil
 	}
 
@@ -339,9 +339,8 @@ func (self *Gitea) postIssue(method string , inum string, issue *Issue) error {
 
 func (self *Gitea) postComment(method string , inum string, body string) error {
 	url := self.Url + "api/v1/repos/" + self.Repo +
-						"/issues/" + inum + "comments/"
-	json_str := `{"body":"`+ body + `"}`
-
+						"/issues/" + inum + "/comments"
+	json_str := `{"Body":"`+ lf2Esclf(onlyLF(body)) + `"}`
 	_, rcode, err := self.reqHttp(method, url, []byte(json_str))
 	if err != nil {
 		return err
@@ -350,6 +349,7 @@ func (self *Gitea) postComment(method string , inum string, body string) error {
 		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
 		return nil
 	}
+	fmt.Printf("comment added : #%v\n", inum)
 	return nil
 }
 
@@ -609,6 +609,12 @@ func onlyLF(str string) string {
 	return strings.NewReplacer(
 		"\r\n", "\n",
 		"\r", "\n",
+	).Replace(str)
+}
+
+func lf2Esclf(str string) string {
+	return strings.NewReplacer(
+		"\n", "\\n",
 	).Replace(str)
 }
 
