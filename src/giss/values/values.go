@@ -13,12 +13,14 @@ Advance preparation
  status				Display the status of remote repository and login.
 
 Issues operation
+ create 			Create a issue.
  ls [ -a ] [ -l <limit cnt> ]	Display the current issues.
  					-l <limit> : Specify the maximum display line number. By default, 20 lines.
 					-a         : Also displays closed issues. By default, only open is displayed.
  show  <issues No>		Display the specified issues detail at the iss,
 -add   <issues No>		Add a comment to the end at the specified issues.
--edit  <issues No>		Edit a title and description at the specified issues.
+
+ edit  <issues No>		Edit a title and description at the specified issues.
  close <issues No>		Change to the close status at the specified issues.
  open  <issues No>		Change to the open status at the specified issues.
 

@@ -149,53 +149,38 @@ func (self *Gitea) CreateIssue() error {
 	return self.createIssue()
 }
 
-func (self *Gitea) editIssue(issue *Issue) error {
-	for {
-		fmt.Printf("Title : %s\n", issue.Title)
-		fmt.Printf("Body ------->  \n%s\n", issue.Body)
-		fmt.Printf("-----------------------END--------------------\n\n")
-		fmt.Printf("Menu : title : t , body : b , done : done\n")
-		menu, err := inputString("Please enter the menu (or cancel) >>")
-		if err != nil {
-			return err
-		}
-		switch menu {
-		case "t":
-			b, err := editor.Call("vim", []byte(issue.Title))
-			if err != nil {
-				return err
-			}
-			issue.Title = string(b)
-			fmt.Printf("title eddited\n")
-		case "b":
-			b, err := editor.Call("vim", []byte(issue.Body))
-			if err != nil {
-				return err
-			}
-			issue.Body = string(b)
-			fmt.Printf("body eddited\n")
-		case "done":
-			fmt.Printf("done...\n")
-		case "cancel":
-			fmt.Printf("Cancel was pressed.quitting...\n")
-			return nil
-		default:
-			fmt.Printf("undefined command\n")
-		}
-		if menu == "done" {
-			return nil
-		}
-		fmt.Printf("=========================================\n")
+func (self *Gitea) createIssue() error {
+	var issue Issue
+	if ok, err := editIssue(&issue); !ok {
+		return err
+	}
+	if err := self.createPostIssue(&issue); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (self *Gitea) createIssue() error {
-	var issue Issue
-	if err := self.editIssue(&issue); err != nil {
+func (self *Gitea) ModifyIssue(inum string) error {
+	if !self.isLogined() {
+		return nil
+	}
+	return self.modifyIssue(inum)
+}
+
+func (self *Gitea) modifyIssue(inum string) error {
+	issue, _, err := self.getIssue(inum)
+	if err != nil {
 		return err
 	}
-	if err := self.createPostIssue(&issue); err != nil {
+	if issue.State == "" {
+		fmt.Printf("undefined ticket: %s\n", inum)
+		return nil
+	}
+
+	if ok, err := editIssue(&issue); !ok {
+		return err
+	}
+	if err := self.updatePostIssue(inum, &issue); err != nil {
 		return err
 	}
 	return nil
@@ -306,6 +291,7 @@ func (self *Gitea) createPostIssue(issue *Issue) error {
 func (self *Gitea) postIssue(method string , inum string, issue *Issue) error {
 	url := self.Url + "api/v1/repos/" + self.Repo + "/issues/" + inum
 
+	issue.Update = time.Now()
 	ijson, err := json.Marshal(convIssueEdited(*issue))
 	if err != nil {
 		return err
@@ -322,6 +308,7 @@ func (self *Gitea) postIssue(method string , inum string, issue *Issue) error {
 	if err := json.Unmarshal(iret, &issue); err != nil {
 		return err
 	}
+	fmt.Printf("issue posted : #%v\n",issue.Num)
 	return nil
 }
 
@@ -476,6 +463,48 @@ func (self *Gitea) createReqToken(username, passwd string) (string, error) {
 		token = jtoken.Sha1
 	}
 	return token, nil
+}
+
+func editIssue(issue *Issue) (bool, error) {
+	for {
+		fmt.Printf("edit option  \n\tt: title, b: body\n")
+		fmt.Printf("other option \n\tp: issue print, done: edit done\n")
+		menu, err := inputString("Please enter the menu (or cancel) >>")
+		if err != nil {
+			return false, err
+		}
+		switch menu {
+		case "p":
+			fmt.Printf("\n\n================ISSUE=============\n")
+			fmt.Printf("Title : %s\n", issue.Title)
+			fmt.Printf("Body ------->  \n%s\n", issue.Body)
+			fmt.Printf("\n================END===============\n\n\n")
+		case "t":
+			b, err := editor.Call("vim", []byte(issue.Title))
+			if err != nil {
+				return false, err
+			}
+			issue.Title = string(b)
+			fmt.Printf("title eddited\n")
+		case "b":
+			b, err := editor.Call("vim", []byte(issue.Body))
+			if err != nil {
+				return false, err
+			}
+			issue.Body = string(b)
+			fmt.Printf("body eddited\n")
+		case "done":
+			fmt.Printf("done...\n")
+			return true, nil
+		case "cancel":
+			fmt.Printf("Cancel was pressed.quitting...\n")
+			return false, nil
+		default:
+			fmt.Printf("undefined command\n")
+		}
+		fmt.Printf("-----------------------Menu--------------------\n")
+	}
+	return false, nil
 }
 
 func convIssueEdited(issue Issue) IssueEdited {

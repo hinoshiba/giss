@@ -39,6 +39,8 @@ func giss() error {
 		err = ComCreate()
 	case "close":
 		err = ComClose(Options)
+	case "edit":
+		err = ComEdit(Options)
 	case "open":
 		err = ComOpen(Options)
 	case "show":
@@ -66,6 +68,17 @@ func ComTest() error {
 	}
 
 	fmt.Printf("%s",string(ret))
+	return nil
+}
+
+func ComEdit(options []string) error {
+	if len(options) < 1 {
+		fmt.Printf("can't detect issue number\n")
+		return nil
+	}
+	if err := Git.ModifyIssue(options[0]); err != nil {
+		return err
+	}
 	return nil
 }
 
