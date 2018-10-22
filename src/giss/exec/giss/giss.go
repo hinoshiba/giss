@@ -6,6 +6,8 @@ import (
 	"flag"
 	"bufio"
 	"strings"
+	"time"
+	"giss/mail"
 	"giss/config"
 	"giss/cache"
 	"giss/values"
@@ -14,6 +16,7 @@ import (
 )
 
 var PrintAll bool
+var RepoAutosend bool
 var LineLimit int
 var RunMode string
 var Options []string
@@ -32,8 +35,10 @@ func giss() error {
 
 	var err error
 	switch RunMode {
-	case "test":
-		err = ComTest()
+	case "checkin":
+		err = ComCheckin()
+	case "report":
+		err = ComReport()
 	case "create":
 		err = ComCreate()
 	case "close":
@@ -62,18 +67,75 @@ func giss() error {
 	return err
 }
 
-func ComTest() error {
-	report, err := Git.ReportIssues()
+func ComReport() error {
+	report_str := config.Rc.Report.Header
+	now := time.Now()
+	date_now := now.Format("2006/01/02")
+	ago := now.AddDate(0, 0, -7)
+	date_7ago := ago.Format("01/02")
+
+	for _, v := range config.Rc.Report.TargetRepo {
+		Git.Repo = v
+		report_str += "----------------- " + Git.Repo
+		report_str += " ---------------------------------------------\n"
+		report, err := Git.ReportIssues(now)
+		if err != nil {
+			return err
+		}
+		for i, v := range report {
+			report_str += "■ "+ i + "\n"
+			report_str += v
+		}
+	}
+	report_str += config.Rc.Report.Futter
+	subject := config.Rc.Mail.Subject + " " + date_now + " - " + date_7ago
+	if !RepoAutosend {
+		fmt.Printf("Preview, Need -m to sending.\n\n======\n%s",subject)
+		fmt.Printf("\n+++++++++++++++++++++++++++++++++\n%s",report_str)
+		return nil
+	}
+
+
+	var smtp mail.Smtp
+	err := smtp.New(config.Rc.Mail.Mta,
+				      config.Rc.Mail.Port, config.Rc.Mail.From)
 	if err != nil {
 		return err
 	}
-	report_str := config.Rc.Body.Header
-	for i, v := range report {
-		report_str += "■ "+ i + "\n"
-		report_str += v
+
+	err = smtp.MakeMail(config.Rc.Mail.To, subject, report_str)
+	if err != nil {
+		return err
 	}
-	report_str += config.Rc.Body.Header
-	fmt.Printf("%s",report_str)
+
+	if err := smtp.Send(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ComCheckin() error {
+	fmt.Printf("Server      : %s\n",Git.Url)
+	fmt.Printf("ReportTargetRepository\n")
+	for _, v := range config.Rc.Report.TargetRepo {
+		fmt.Printf("   - %s\n", v)
+	}
+	str, err := inputString("enter the repository you want to use.>>")
+	if err != nil {
+		return nil
+	}
+	if err := cache.SaveCurrentGit(str); err != nil {
+		return err
+	}
+	if err := cache.LoadCaches(); err != nil {
+		return err
+	}
+	if cache.CurrentGit != str {
+		fmt.Printf("checkin failed\n")
+		return nil
+
+	}
+	fmt.Printf("checkin :%s\n", cache.CurrentGit)
 	return nil
 }
 
@@ -198,11 +260,25 @@ func ComHelp() error {
 	return nil
 }
 
+func  inputString(menu string) (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf(menu)
+	istr, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+
+	iline := strings.Trim(istr, " \n")
+	return iline, nil
+}
+
 func init() {
 	var line_limit int
 	var print_all bool
+	var repo_autosend bool
 	flag.IntVar(&line_limit, "l", 20, "Specify the maximum number of display lines.")
 	flag.BoolVar(&print_all, "a", false, "Also displays detail or close")
+	flag.BoolVar(&repo_autosend, "m", false, "Also displays detail or close")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -215,6 +291,7 @@ func init() {
 	Options = flag.Args()[1:]
 	LineLimit = line_limit
 	PrintAll = print_all
+	RepoAutosend = repo_autosend
 
 	if err := cache.LoadCaches(); err != nil {
 		die("Error : %s\n", err)

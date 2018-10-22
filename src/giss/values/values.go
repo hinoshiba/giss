@@ -9,8 +9,7 @@ how to use : giss <subcommand> ...
 Advance preparation
 
 Credential & Repository operation
--checkin			It targets the issue of the remote repository in the current directory.
--checkout			Clear the information acquired with checkin.
+ checkin			(beta Function) It targets the issue of the remote repository in the current directory.
  login				Login to current git server and get token.
  status				Display the status of remote repository and login.
 
@@ -28,7 +27,7 @@ Issues operation
  show      <issues No>		Display the specified issues detail at the iss,
 
 Advance operation
--repo				A mail is automatically generated in which addresses, headers, etc. are automatically inserted.
+ repo				(beta Function) A mail is automatically generated in which addresses, headers, etc. are automatically inserted.
  				Must be set in advance in "~/.gissrc ".
 ---------------------------------------------------------
 

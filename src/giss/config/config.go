@@ -6,22 +6,24 @@ import (
 )
 
 type Config struct {
-	Body BodyConfig
+	Report RepoConfig
 	Mail MailConfig
 	GitDefault  GitDefaultConfig
 	Giss GissConfig
 }
 
-type BodyConfig struct {
+type RepoConfig struct {
 	Header string `toml:"Header"`
 	Futter string `toml:"Futter"`
+	TargetRepo []string `toml:"targetRepository"`
 }
 
 type MailConfig struct {
-	To string `toml:"To"`
-	Cc string `toml:"Cc"`
-	Bcc string `toml:"Bcc"`
+	To []string `toml:"To"`
 	From string `toml:"From"`
+	Subject string `toml:"Subject"`
+	Mta string `toml:"MTA"`
+	Port int64 `toml:"Port"`
 
 }
 

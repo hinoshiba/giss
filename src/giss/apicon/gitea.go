@@ -420,8 +420,7 @@ func (self *Gitea) printIssues(limit int, withclose bool) error {
 	return nil
 }
 
-func (self *Gitea) ReportIssues() (map[string]string, error) {
-	now := time.Now()
+func (self *Gitea) ReportIssues(now time.Time) (map[string]string, error) {
 	iss, err := self.getIssues(true)
 	if err != nil {
 		return nil, err
@@ -434,7 +433,7 @@ func (self *Gitea) ReportIssues() (map[string]string, error) {
 	newtag := dayAgo(now, -7)
 	limit := dayAgo(now, -14)
 	for _, is := range iss {
-		if is.Update.Unix() < limit.Unix() {
+		if is.Update.Unix() < limit.Unix() && is.State == "closed" {
 			continue
 		}
 

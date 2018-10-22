@@ -23,6 +23,10 @@ func LoadCaches() error {
 	return loadCaches(homeDir)
 }
 
+func SaveCurrentGit(giturl string) error {
+	return saveCurrentGit(giturl)
+}
+
 func SaveCred(username string, token string) error {
 	return saveCred(username, token)
 }
