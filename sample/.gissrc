@@ -1,0 +1,23 @@
+[Report]
+header = """
+This mail is weekly issues report.
+"""
+
+futter = """
+-------------------------------
+"""
+targetRepository = [ "repo/issue-repo" , "user/mytasks" ]
+
+[Mail]
+MTA = "yourmta.example.com"
+Port = 25
+
+To = ["yourmailaddress@example.com", "hinoshiba@example.jp"]
+From = "own@example.com"
+Subject = "weekly issues report"
+
+[GitDefault]
+URL = "https://www.example.com/gitea/"
+
+[Giss]
+editor = "vim"
