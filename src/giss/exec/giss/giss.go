@@ -124,6 +124,10 @@ func ComCheckin() error {
 	if err != nil {
 		return nil
 	}
+	if str == "" {
+		fmt.Printf("empty input\n")
+		return nil
+	}
 	if err := cache.SaveCurrentGit(str); err != nil {
 		return err
 	}
