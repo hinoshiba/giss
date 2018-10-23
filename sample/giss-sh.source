@@ -1,0 +1,15 @@
+export PS1="\e[0;31m[\u@\h \W]\(giss)$ \e[m "
+
+alias checkin='giss chechin'
+alias login='giss login'
+alias ls='giss ls'
+alias status='giss status'
+alias screate='giss create'
+alias comment='giss comment'
+alias edit='giss edit'
+alias close='giss close'
+alias open='giss open'
+alias show='giss show'
+alias repo='giss repo'
+
+alias exit='exec bash'
