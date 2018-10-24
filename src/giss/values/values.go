@@ -1,6 +1,6 @@
 package values
 
-var VersionText string = "Hinoshiba(c) giss command v0.0.1"
+var VersionText string = "Hinoshiba(c) giss command v0.0.2"
 var HelpText string = `---------------------------------------------------------
 `+ VersionText + `
 

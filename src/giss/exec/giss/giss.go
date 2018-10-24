@@ -103,7 +103,8 @@ func ComReport() error {
 		return err
 	}
 
-	err = smtp.MakeMail(config.Rc.Mail.To, subject, report_str)
+	err = smtp.MakeMail(config.Rc.Mail.Header, config.Rc.Mail.To,
+							subject, report_str)
 	if err != nil {
 		return err
 	}

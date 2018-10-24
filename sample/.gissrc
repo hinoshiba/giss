@@ -15,6 +15,8 @@ Port = 25
 To = ["yourmailaddress@example.com", "hinoshiba@example.jp"]
 From = "own@example.com"
 Subject = "weekly issues report"
+To = ["yourmailaddress@example.com", "hinoshiba@example.jp"]
+Header = ["Content-type: text/plain; charset=utf-8"]
 
 [GitDefault]
 URL = "https://www.example.com/gitea/"

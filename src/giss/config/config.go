@@ -20,6 +20,7 @@ type RepoConfig struct {
 
 type MailConfig struct {
 	To []string `toml:"To"`
+	Header []string `toml:"Header"`
 	From string `toml:"From"`
 	Subject string `toml:"Subject"`
 	Mta string `toml:"MTA"`

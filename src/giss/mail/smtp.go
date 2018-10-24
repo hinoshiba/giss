@@ -28,7 +28,7 @@ func (self *Smtp) New(mta string, p int64, f string) error {
 
 }
 
-func (self *Smtp) MakeMail ( to []string, sub string, b string) error {
+func (self *Smtp) MakeMail ( header, to []string, sub string, b string) error {
 
 	self.to = to
 	self.subject = sub
@@ -36,6 +36,7 @@ func (self *Smtp) MakeMail ( to []string, sub string, b string) error {
 	self.body = []byte(
 		"To: " + slice2str(self.to) + "\r\n" +
 		"Subject: " + self.subject + "\r\n" +
+		slice2mlstr(header) + "\r\n" +
 		"\r\n" +
 		b )
 
@@ -52,6 +53,20 @@ func slice2str(sl []string) string {
 			continue
 		}
 		str = str + "," + row
+	}
+	return str
+
+}
+
+func slice2mlstr(sl []string) string {
+
+	var str string
+	for i, row := range sl {
+		if i == 0 {
+			str = row
+			continue
+		}
+		str = str + "\r\n" + row
 	}
 	return str
 
