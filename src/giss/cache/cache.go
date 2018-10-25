@@ -9,101 +9,109 @@ import (
 	"strings"
 )
 
-var Token string
-var User string
-var CurrentGit string
-var CacheDir string
-var TmpDir string
+type Cache struct {
+	Token string
+	User string
+	CurrentGit string
+	CacheDir string
+	TmpDir string
+}
 
-func LoadCaches() error {
+func LoadCaches() (Cache, error) {
+	var c Cache
 	homeDir, err := getHomeDir()
 	if err != nil {
-		return err
+		return c, err
 	}
 	return loadCaches(homeDir)
 }
 
-func SaveCurrentGit(giturl string) error {
-	return saveCurrentGit(giturl)
+func (self *Cache)SaveCurrentGit(giturl string) error {
+	return self.saveCurrentGit(giturl)
 }
 
-func SaveCred(username string, token string) error {
-	return saveCred(username, token)
+func (self *Cache)SaveCred(username string, token string) error {
+	return self.saveCred(username, token)
 }
 
-func saveCurrentGit(giturl string) error {
-	path := CacheDir + "/.currentgit"
+func (self *Cache)saveCurrentGit(giturl string) error {
+	path := self.CacheDir + "/.currentgit"
 
 	if err := writeParam(path, giturl); err != nil {
 		return err
 	}
-	if err := loadCaches(CacheDir); err != nil {
+	c, err := loadCaches(self.CacheDir)
+	if err != nil {
 		return err
 	}
+	self = &c
 	return nil
 }
 
-func saveCred(username string, token string) error {
+func (self *Cache)saveCred(username string, token string) error {
 	cred := username + "," + token
-	path := CacheDir + "/.cred"
+	path := self.CacheDir + "/.cred"
 
 	if err := writeParam(path, cred); err != nil {
 		return err
 	}
-	if err := loadCaches(CacheDir); err != nil {
+	c, err := loadCaches(self.CacheDir)
+	if err != nil {
 		return err
 	}
+	self = &c
 	return nil
 }
 
-func loadCaches(dir string) error {
+func loadCaches(dir string) (Cache, error) {
+	var cache Cache
 	fpath, err := filepath.Abs(dir)
 	if err != nil {
-		return nil
+		return cache, err
 	}
 
-	if CacheDir == "" {
-		if err := initCacheDir(fpath); err != nil {
-			return err
-		}
+	cdir := fpath + "/.giss/"
+	if err := checkCacheDir(fpath); err != nil {
+		return cache, err
 	}
 
-	cfile := CacheDir + "/.cred"
+
+	cfile := cdir + "/.cred"
 	fcreds, err := loadParam(cfile)
 	if err != nil {
-		return err
+		return cache, err
 	}
 	creds := strings.Split(fcreds, ",")
-	if len(creds) == 2 {
-		User = creds[0]
-		Token = creds[1]
+	if len(creds) != 2 {
+		return cache, nil
 	}
 
-	cafile := CacheDir + "/.currentgit"
+	cafile := cdir + "/.currentgit"
 	currentgit, err := loadParam(cafile)
 	if err != nil {
-		return err
+		return cache, err
 	}
-	CurrentGit = currentgit
 
-	t, err := ioutil.TempDir(CacheDir,"giss-cache-")
+	t, err := ioutil.TempDir(cdir,"giss-cache-")
 	if err != nil {
-		return err
+		return cache, err
 	}
-	TmpDir = t
+	cache.TmpDir = t
+	cache.CacheDir = cdir
+	cache.User = creds[0]
+	cache.Token = creds[1]
+	cache.CurrentGit = currentgit
 
-	return nil
+	return cache, nil
 }
 
-func initCacheDir(dir string) error {
-	cdir := dir + "/.giss/"
+func checkCacheDir(cdir string) error {
 
 	if _, err := os.Stat(cdir); err != nil {
 		if ferr := os.Mkdir(cdir, 0770); ferr != nil {
 			return ferr
 		}
 	}
-	CacheDir = cdir
 	return nil
 }
 

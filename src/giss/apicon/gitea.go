@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"github.com/hinoshiba/go-editor/editor"
+	"giss/cache"
 )
 
 type JsonToken struct {
@@ -67,6 +68,7 @@ type IssueMilestone struct {
 	Title  string `json:"title"`
 }
 
+var Editor string
 var TokenName string = "giss"
 var ReportNewTag string = "+"
 var ReportTaskTag string = "-"
@@ -100,14 +102,14 @@ func (self *Gitea) isLogined() bool {
 	return true
 }
 
-func (self *Gitea) LoadCache(username, token, repo string) bool {
-	return self.loadCache(username, token, repo)
+func (self *Gitea) LoadCache(c cache.Cache) bool {
+	return self.loadCache(c)
 }
 
-func (self *Gitea) loadCache(username, token, repo string) bool {
-	self.User = username
-	self.Token = token
-	self.Repo = repo
+func (self *Gitea) loadCache(c cache.Cache) bool {
+	self.User = c.User
+	self.Token = c.Token
+	self.Repo = c.CurrentGit
 	return self.isLogined()
 }
 

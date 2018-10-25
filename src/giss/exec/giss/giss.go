@@ -21,6 +21,7 @@ var LineLimit int
 var RunMode string
 var Options []string
 var Git apicon.Gitea
+var Cache cache.Cache
 
 func die(s string, msg ...interface{}) {
 	fmt.Fprintf(os.Stderr, s + "\n" , msg...)
@@ -129,18 +130,20 @@ func ComCheckin() error {
 		fmt.Printf("empty input\n")
 		return nil
 	}
-	if err := cache.SaveCurrentGit(str); err != nil {
+		if err := Cache.SaveCurrentGit(str); err != nil {
 		return err
 	}
-	if err := cache.LoadCaches(); err != nil {
+	c, err := cache.LoadCaches()
+	if err != nil {
 		return err
 	}
-	if cache.CurrentGit != str {
+	if c.CurrentGit != str {
 		fmt.Printf("checkin failed\n")
 		return nil
 
 	}
-	fmt.Printf("checkin :%s\n", cache.CurrentGit)
+	Cache = c
+	fmt.Printf("checkin :%s\n", Cache.CurrentGit)
 	return nil
 }
 
@@ -248,7 +251,7 @@ func ComLogin() error {
 		warn("login failed")
 		return err
 	}
-	if err := cache.SaveCred(Git.User, Git.Token); err != nil {
+	if err := Cache.SaveCred(Git.User, Git.Token); err != nil {
 		warn("cache save failed")
 		return err
 	}
@@ -298,27 +301,27 @@ func init() {
 	PrintAll = print_all
 	RepoAutosend = repo_autosend
 
-	if err := cache.LoadCaches(); err != nil {
-		die("Error : %s\n", err)
-	}
-
 	if err := config.LoadUserConfig(); err != nil {
 		die("Error : %s\n", err)
 	}
-
 	var err error
 	Git, err = apicon.NewGiteaCredent(config.Rc.GitDefault.Url)
 	if err != nil {
 		die("Error : %s\n", err)
 	}
-	Git.LoadCache(cache.User, cache.Token, cache.CurrentGit)
 
+	c, err := cache.LoadCaches()
+	if err != nil {
+		die("Error : %s\n", err)
+	}
+	Git.LoadCache(c)
+	Cache = c
 }
 
 func main() {
-	defer os.RemoveAll(cache.TmpDir)
+	defer os.RemoveAll(Cache.TmpDir)
 	if err := giss(); err != nil {
-		os.RemoveAll(cache.TmpDir)
+		os.RemoveAll(Cache.TmpDir)
 		die("Error : %s\n", err)
 	}
 }
