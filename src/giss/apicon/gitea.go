@@ -155,7 +155,7 @@ func (self *Gitea) CreateIssue() error {
 
 func (self *Gitea) createIssue() error {
 	var issue Issue
-	if ok, err := editIssue(&issue); !ok {
+	if ok, err := editIssue(&issue, true); !ok {
 		return err
 	}
 	if err := self.createPostIssue(&issue); err != nil {
@@ -181,7 +181,7 @@ func (self *Gitea) modifyIssue(inum string) error {
 		return nil
 	}
 
-	if ok, err := editIssue(&issue); !ok {
+	if ok, err := editIssue(&issue, false); !ok {
 		return err
 	}
 	if err := self.updatePostIssue(inum, &issue); err != nil {
@@ -575,7 +575,15 @@ func (self *Gitea) createReqToken(username, passwd string) (string, error) {
 	return token, nil
 }
 
-func editIssue(issue *Issue) (bool, error) {
+func editIssue(issue *Issue, fastedit bool) (bool, error) {
+	if fastedit {
+		b, err := editor.Call("vim", []byte(issue.Title))
+		if err != nil {
+			return false, err
+		}
+		issue.Title = string(b)
+		fmt.Printf("Title : %s\n", issue.Title)
+	}
 	for {
 		fmt.Printf("edit option  \n\tt: title, b: body\n")
 		fmt.Printf("other option \n\tp: issue print, done: edit done\n")

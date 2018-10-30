@@ -44,7 +44,7 @@ func giss() error {
 		err = ComCreate()
 	case "close":
 		err = ComClose(Options)
-	case "comment":
+	case "com":
 		err = ComComment(Options)
 	case "edit":
 		err = ComEdit(Options)
