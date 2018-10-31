@@ -488,24 +488,36 @@ func (self *Gitea) reportIssue(newtag time.Time, is *Issue) (string, error) {
 }
 
 func (self *Gitea) getIssues(withclose bool) ([]Issue, error) {
-	url := self.Url + "api/v1/repos/" + self.Repo + "/issues"
+	url := self.Url + "api/v1/repos/" + self.Repo + "/issues?"
 	if withclose {
-		url = url + "?state=all"
+		url = url + "&state=all"
 	}
-	bret, rcode, err := self.reqHttp("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil, nil
-	}
+	var p int = 1
+	var ret []Issue
+	for {
+		u := url + "&page=" + fmt.Sprintf("%v",p)
+		bret, rcode, err := self.reqHttp("GET", u, nil)
+		if err != nil {
+			return nil, err
+		}
+		if rcode != 200 {
+			fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+			return nil, nil
+		}
 
-	var issues []Issue
-	if err := json.Unmarshal(bret, &issues); err != nil {
-		return nil, err
+		var issues []Issue
+		if err := json.Unmarshal(bret, &issues); err != nil {
+			return nil, err
+		}
+		if len(issues) < 1 {
+			break
+		}
+		p += 1
+		for _, v := range issues {
+			ret = append(ret, v)
+		}
 	}
-	return issues, nil
+	return ret, nil
 }
 
 func (self *Gitea) getDefinedToken(username, passwd string) (string, error) {
