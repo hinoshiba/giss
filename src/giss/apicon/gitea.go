@@ -432,7 +432,7 @@ func (self *Gitea) ReportIssues(now time.Time) (map[string]string, error) {
 	}
 
 	ret := make(map[string]string)
-	newtag := dayAgo(now, -7)
+	newtag := dayAgo(now, -6)
 	limit := dayAgo(now, -14)
 	for _, is := range iss {
 		if is.Update.Unix() < limit.Unix() && is.State == "closed" {
