@@ -71,9 +71,9 @@ func giss() error {
 func ComReport() error {
 	report_str := config.Rc.Report.Header
 	now := time.Now()
-	date_now := now.Format("2006/01/02")
+	date_now := now.Format("01/02")
 	ago := now.AddDate(0, 0, -7)
-	date_7ago := ago.Format("01/02")
+	date_7ago := ago.Format("2006/01/02")
 
 	for _, v := range config.Rc.Report.TargetRepo {
 		Git.Repo = v
@@ -89,7 +89,7 @@ func ComReport() error {
 		}
 	}
 	report_str += config.Rc.Report.Futter
-	subject := config.Rc.Mail.Subject + " " + date_now + " - " + date_7ago
+	subject := config.Rc.Mail.Subject + " " + date_7ago + " - " + date_now
 	if !RepoAutosend {
 		fmt.Printf("Preview, Need -m to sending.\n\n======\n%s",subject)
 		fmt.Printf("\n+++++++++++++++++++++++++++++++++\n%s",report_str)
@@ -105,7 +105,7 @@ func ComReport() error {
 	}
 
 	err = smtp.MakeMail(config.Rc.Mail.Header, config.Rc.Mail.To,
-							subject, report_str)
+							subject, []byte(report_str))
 	if err != nil {
 		return err
 	}
