@@ -15,6 +15,7 @@ type Cache struct {
 	CurrentGit string
 	CacheDir string
 	TmpDir string
+	HomeDir string
 }
 
 func LoadCaches() (Cache, error) {
@@ -40,11 +41,6 @@ func (self *Cache)saveCurrentGit(giturl string) error {
 	if err := writeParam(path, giturl); err != nil {
 		return err
 	}
-	c, err := loadCaches(self.CacheDir)
-	if err != nil {
-		return err
-	}
-	self = &c
 	return nil
 }
 
@@ -55,11 +51,6 @@ func (self *Cache)saveCred(username string, token string) error {
 	if err := writeParam(path, cred); err != nil {
 		return err
 	}
-	c, err := loadCaches(self.CacheDir)
-	if err != nil {
-		return err
-	}
-	self = &c
 	return nil
 }
 
@@ -69,12 +60,13 @@ func loadCaches(dir string) (Cache, error) {
 	if err != nil {
 		return cache, err
 	}
+	cache.HomeDir = fpath
 
 	cdir := fpath + "/.giss/"
 	if err := checkCacheDir(fpath); err != nil {
 		return cache, err
 	}
-
+	cache.CacheDir = cdir
 
 	cfile := cdir + "/.cred"
 	fcreds, err := loadParam(cfile)
@@ -82,8 +74,9 @@ func loadCaches(dir string) (Cache, error) {
 		return cache, err
 	}
 	creds := strings.Split(fcreds, ",")
-	if len(creds) != 2 {
-		return cache, nil
+	if len(creds) == 2 {
+		cache.User = creds[0]
+		cache.Token = creds[1]
 	}
 
 	cafile := cdir + "/.currentgit"
@@ -91,16 +84,13 @@ func loadCaches(dir string) (Cache, error) {
 	if err != nil {
 		return cache, err
 	}
+	cache.CurrentGit = currentgit
 
 	t, err := ioutil.TempDir(cdir,"giss-cache-")
 	if err != nil {
 		return cache, err
 	}
 	cache.TmpDir = t
-	cache.CacheDir = cdir
-	cache.User = creds[0]
-	cache.Token = creds[1]
-	cache.CurrentGit = currentgit
 
 	return cache, nil
 }

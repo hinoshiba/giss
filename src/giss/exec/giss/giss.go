@@ -33,6 +33,7 @@ func warn(s string, msg ...interface{}) {
 }
 
 func giss() error {
+	defer os.RemoveAll(Cache.TmpDir)
 
 	var err error
 	switch RunMode {
@@ -285,8 +286,12 @@ func init() {
 	var print_all bool
 	var repo_autosend bool
 	flag.IntVar(&line_limit, "l", 20, "Specify the maximum number of display lines.")
-	flag.BoolVar(&print_all, "a", false, "Also displays detail or close")
-	flag.BoolVar(&repo_autosend, "m", false, "Also displays detail or close")
+	flag.BoolVar(&print_all, "a", false, "Also displays detail or close.")
+	flag.BoolVar(&repo_autosend, "m", false, "Send the report by e-mail.")
+	flag.Usage = func() {
+		ComHelp()
+		os.Exit(0)
+	}
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -318,10 +323,9 @@ func init() {
 	Cache = c
 }
 
+
 func main() {
-	defer os.RemoveAll(Cache.TmpDir)
 	if err := giss(); err != nil {
-		os.RemoveAll(Cache.TmpDir)
 		die("Error : %s\n", err)
 	}
 }
