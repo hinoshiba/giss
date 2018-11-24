@@ -11,7 +11,8 @@ import (
 	"giss/config"
 	"giss/cache"
 	"giss/values"
-	"giss/apicon"
+	//"giss/apicon"
+	"giss/gitapi"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -20,7 +21,8 @@ var RepoAutosend bool
 var LineLimit int
 var RunMode string
 var Options []string
-var Git apicon.Gitea
+//var Git apicon.Gitea
+var Git gitapi.Apicon
 var Cache cache.Cache
 
 func die(s string, msg ...interface{}) {
@@ -77,8 +79,8 @@ func ComReport() error {
 	date_7ago := ago.Format("2006/01/02")
 
 	for _, v := range config.Rc.Report.TargetRepo {
-		Git.Repo = v
-		report_str += "----------------- " + Git.Repo
+		Git.SetRepo(v)
+		report_str += "----------------- " + Git.GetRepo()
 		report_str += " ---------------------------------------------\n"
 		report, err := Git.ReportIssues(now)
 		if err != nil {
@@ -118,7 +120,7 @@ func ComReport() error {
 }
 
 func ComCheckin() error {
-	fmt.Printf("Server      : %s\n",Git.Url)
+	fmt.Printf("Server      : %s\n",Git.GetUrl())
 	fmt.Printf("ReportTargetRepository\n")
 	for _, v := range config.Rc.Report.TargetRepo {
 		fmt.Printf("   - %s\n", v)
@@ -224,11 +226,11 @@ func ComStatus() error {
 		return nil
 	}
 	fmt.Printf("TargetRepo\n")
-	fmt.Printf("      CurrentGit  : %s\n",Git.Repo)
-	fmt.Printf("      Server      : %s\n",Git.Url)
+	fmt.Printf("      CurrentGit  : %s\n",Git.GetRepo())
+	fmt.Printf("      Server      : %s\n",Git.GetUrl())
 	fmt.Printf("GitCRED\n")
-	fmt.Printf("      User        : %s\n",Git.User)
-	fmt.Printf("      Token       : %s****************\n",Git.Token[:10])
+	fmt.Printf("      User        : %s\n",Git.GetUser())
+	fmt.Printf("      Token       : %s****************\n",Git.GetToken()[:10])
 	return nil
 }
 
@@ -252,7 +254,7 @@ func ComLogin() error {
 		warn("login failed")
 		return err
 	}
-	if err := Cache.SaveCred(Git.User, Git.Token); err != nil {
+	if err := Cache.SaveCred(Git.GetUser(), Git.GetToken()); err != nil {
 		warn("cache save failed")
 		return err
 	}
@@ -310,7 +312,8 @@ func init() {
 		die("Error : %s\n", err)
 	}
 	var err error
-	Git, err = apicon.NewGiteaCredent(config.Rc.GitDefault.Url)
+	//Git, err = apicon.NewGiteaCredent(config.Rc.GitDefault.Url)
+	Git, err = gitapi.NewGiteaCredent(config.Rc.GitDefault.Url)
 	if err != nil {
 		die("Error : %s\n", err)
 	}
