@@ -1,6 +1,13 @@
 package values
 
-var VersionText string = "Hinoshiba(c) giss command v0.0.7"
+import "time"
+
+func DebugVersion() {
+	t := time.Now()
+	VersionText = VersionText + t.Format(" Alpha_2006-01-02_15:04:05")
+}
+
+var VersionText string = "Hinoshiba(c) giss command v0.0.8"
 var HelpText string = `---------------------------------------------------------
 `+ VersionText + `
 

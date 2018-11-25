@@ -12,7 +12,9 @@ import (
 type Cache struct {
 	Token string
 	User string
-	CurrentGit string
+	Repo string
+	Url string
+	Alias string
 	CacheDir string
 	TmpDir string
 	HomeDir string
@@ -27,18 +29,19 @@ func LoadCaches() (Cache, error) {
 	return loadCaches(homeDir)
 }
 
-func (self *Cache)SaveCurrentGit(giturl string) error {
-	return self.saveCurrentGit(giturl)
+func (self *Cache)SaveCurrentGit(alias string, url string, repo string) error {
+	return self.saveCurrentGit(alias, url, repo)
 }
 
 func (self *Cache)SaveCred(username string, token string) error {
 	return self.saveCred(username, token)
 }
 
-func (self *Cache)saveCurrentGit(giturl string) error {
+func (self *Cache)saveCurrentGit(alias string, url string, repo string) error {
+	target := alias + "," + url + "," + repo
 	path := self.CacheDir + "/.currentgit"
 
-	if err := writeParam(path, giturl); err != nil {
+	if err := writeParam(path, target); err != nil {
 		return err
 	}
 	return nil
@@ -80,16 +83,22 @@ func loadCaches(dir string) (Cache, error) {
 	}
 
 	cafile := cdir + "/.currentgit"
-	currentgit, err := loadParam(cafile)
+	scurgits, err := loadParam(cafile)
 	if err != nil {
 		return cache, err
 	}
-	cache.CurrentGit = currentgit
+	curgits := strings.Split(scurgits, ",")
+	if len(curgits) == 3 {
+		cache.Alias = curgits[0]
+		cache.Url = curgits[1]
+		cache.Repo = curgits[2]
+	}
 
 	t, err := ioutil.TempDir(cdir,"giss-cache-")
 	if err != nil {
 		return cache, err
 	}
+	os.RemoveAll(cache.TmpDir)
 	cache.TmpDir = t
 
 	return cache, nil

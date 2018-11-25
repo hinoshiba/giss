@@ -1,17 +1,13 @@
 package gitapi
 
 import (
-//	"os"
 	"fmt"
 	"time"
 	"bytes"
-//	"bufio"
 	"strings"
 	"net/http"
-//	"crypto/tls"
 	"io/ioutil"
 	"encoding/json"
-	"github.com/hinoshiba/go-editor/editor"
 	"giss/cache"
 )
 
@@ -20,7 +16,6 @@ type JsonToken struct {
 	Sha1 string `json:"sha1"`
 }
 
-var Editor string
 var TokenName string = "giss"
 var ReportNewTag string = "+"
 var ReportTaskTag string = "-"
@@ -80,7 +75,8 @@ func (self *Gitea) LoadCache(c cache.Cache) bool {
 func (self *Gitea) loadCache(c cache.Cache) bool {
 	self.User = c.User
 	self.Token = c.Token
-	self.Repo = c.CurrentGit
+	self.Repo = c.Repo
+	self.Url = c.Url
 	return self.isLogined()
 }
 
@@ -161,24 +157,15 @@ func (self *Gitea) modifyIssue(inum string) error {
 	return nil
 }
 
-func (self *Gitea) AddIssueComment(inum string) error {
+func (self *Gitea) AddIssueComment(inum string, comment []byte) error {
 	if !self.isLogined() {
 		return nil
 	}
-	return self.addIssueComment(inum)
+	return self.addIssueComment(inum, comment)
 }
 
-func (self *Gitea) addIssueComment(inum string) error {
-	menu, err := inputString("To continue press the enter key....")
-	if err != nil {
-		return err
-	}
-	if menu != "" {
-		return nil
-	}
-
-	comment, err := editor.Call("vim", []byte(""))
-	if err := self.postComment("POST", inum, string(comment)); err != nil {
+func (self *Gitea) addIssueComment(inum string, comment []byte) error {
+	if err := self.httpComment("POST", inum, string(comment)); err != nil {
 		return err
 	}
 	return nil
@@ -279,14 +266,14 @@ func (self *Gitea) printIssue(inum string, detailprint bool) error {
 }
 
 func (self *Gitea) updatePostIssue(inum string, issue *Issue) error {
-	return self.postIssue("PATCH", inum, issue)
+	return self.httpIssue("PATCH", inum, issue)
 }
 
 func (self *Gitea) createPostIssue(issue *Issue) error {
-	return self.postIssue("POST", "", issue)
+	return self.httpIssue("POST", "", issue)
 }
 
-func (self *Gitea) postIssue(method string , inum string, issue *Issue) error {
+func (self *Gitea) httpIssue(method string , inum string, issue *Issue) error {
 	url := self.Url + "api/v1/repos/" + self.Repo + "/issues/" + inum
 
 	issue.Update = time.Now()
@@ -312,7 +299,7 @@ func (self *Gitea) postIssue(method string , inum string, issue *Issue) error {
 	return nil
 }
 
-func (self *Gitea) postComment(method string , inum string, body string) error {
+func (self *Gitea) httpComment(method string , inum string, body string) error {
 	url := self.Url + "api/v1/repos/" + self.Repo +
 						"/issues/" + inum + "/comments"
 	json_str := `{"Body":"`+ lf2Esclf(onlyLF(body)) + `"}`
@@ -556,56 +543,6 @@ func (self *Gitea) createReqToken(username, passwd string) (string, error) {
 		token = jtoken.Sha1
 	}
 	return token, nil
-}
-
-func editIssue(issue *Issue, fastedit bool) (bool, error) {
-	if fastedit {
-		b, err := editor.Call("vim", []byte(issue.Title))
-		if err != nil {
-			return false, err
-		}
-		issue.Title = string(b)
-		fmt.Printf("Title : %s\n", issue.Title)
-	}
-	for {
-		fmt.Printf("edit option  \n\tt: title, b: body\n")
-		fmt.Printf("other option \n\tp: issue print, done: edit done\n")
-		menu, err := inputString("Please enter the menu (or cancel) >>")
-		if err != nil {
-			return false, err
-		}
-		switch menu {
-		case "p":
-			fmt.Printf("\n\n================ISSUE=============\n")
-			fmt.Printf("Title : %s\n", issue.Title)
-			fmt.Printf("Body ------->  \n%s\n", issue.Body)
-			fmt.Printf("\n================END===============\n\n\n")
-		case "t":
-			b, err := editor.Call("vim", []byte(issue.Title))
-			if err != nil {
-				return false, err
-			}
-			issue.Title = string(b)
-			fmt.Printf("title eddited\n")
-		case "b":
-			b, err := editor.Call("vim", []byte(issue.Body))
-			if err != nil {
-				return false, err
-			}
-			issue.Body = string(b)
-			fmt.Printf("body eddited\n")
-		case "done":
-			fmt.Printf("done...\n")
-			return true, nil
-		case "cancel":
-			fmt.Printf("Cancel was pressed.quitting...\n")
-			return false, nil
-		default:
-			fmt.Printf("undefined command\n")
-		}
-		fmt.Printf("-----------------------Menu--------------------\n")
-	}
-	return false, nil
 }
 
 func convIssueEdited(issue Issue) IssueEdited {

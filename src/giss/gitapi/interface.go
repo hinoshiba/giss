@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"time"
 	"bufio"
+	"errors"
 	"strings"
 	"net/http"
 	"crypto/tls"
 	"giss/cache"
+	"giss/config"
+	"github.com/hinoshiba/go-editor/editor"
 )
+
+var Conf config.Config
 
 type Apicon interface {
 	GetRepo() string
@@ -22,7 +27,7 @@ type Apicon interface {
 	Login(string, string) error
 	CreateIssue() error
 	ModifyIssue(string) error
-	AddIssueComment(string) error
+	AddIssueComment(string, []byte) error
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error
 	PrintIssues(int, bool) error
@@ -30,12 +35,24 @@ type Apicon interface {
 	ReportIssues(time.Time) (map[string]string, error)
 }
 
-func NewGiteaCredent(url string) (Apicon, error) {
-	var gitea Gitea
-	var con Apicon
-	con = &gitea
-	gitea.Url = url
-	return con, nil
+func NewGiteaCredent(rc config.Config, alias string) (Apicon, error) {
+	apitype := rc.Server[alias].Type
+	var ret Apicon
+	switch apitype {
+		case "Gitea":
+			var gitea Gitea
+			Conf = rc
+			ret = &gitea
+			return ret, nil
+		case "Github":
+			var github Github
+			Conf = rc
+			ret = &github
+			return ret, nil
+	}
+
+	err := errors.New(fmt.Sprintf("selected unknown api type : %s",alias))
+	return ret, err
 }
 
 type IssueEdited struct {
@@ -150,4 +167,54 @@ func  inputString(menu string) (string, error) {
 
 	iline := strings.Trim(istr, " \n")
 	return iline, nil
+}
+
+func editIssue(issue *Issue, fastedit bool) (bool, error) {
+	if fastedit {
+		b, err := editor.Call(Conf.Giss.Editor, []byte(issue.Title))
+		if err != nil {
+			return false, err
+		}
+		issue.Title = string(b)
+		fmt.Printf("Title : %s\n", issue.Title)
+	}
+	for {
+		fmt.Printf("edit option  \n\tt: title, b: body\n")
+		fmt.Printf("other option \n\tp: issue print, done: edit done\n")
+		menu, err := inputString("Please enter the menu (or cancel) >>")
+		if err != nil {
+			return false, err
+		}
+		switch menu {
+		case "p":
+			fmt.Printf("\n\n================ISSUE=============\n")
+			fmt.Printf("Title : %s\n", issue.Title)
+			fmt.Printf("Body ------->  \n%s\n", issue.Body)
+			fmt.Printf("\n================END===============\n\n\n")
+		case "t":
+			b, err := editor.Call(Conf.Giss.Editor, []byte(issue.Title))
+			if err != nil {
+				return false, err
+			}
+			issue.Title = string(b)
+			fmt.Printf("title eddited\n")
+		case "b":
+			b, err := editor.Call(Conf.Giss.Editor, []byte(issue.Body))
+			if err != nil {
+				return false, err
+			}
+			issue.Body = string(b)
+			fmt.Printf("body eddited\n")
+		case "done":
+			fmt.Printf("done...\n")
+			return true, nil
+		case "cancel":
+			fmt.Printf("Cancel was pressed.quitting...\n")
+			return false, nil
+		default:
+			fmt.Printf("undefined command\n")
+		}
+		fmt.Printf("-----------------------Menu--------------------\n")
+	}
+	return false, nil
 }

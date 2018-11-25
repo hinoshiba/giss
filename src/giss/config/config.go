@@ -9,7 +9,17 @@ type Config struct {
 	Report RepoConfig
 	Mail MailConfig
 	GitDefault  GitDefaultConfig
+	Server map[string]GitServerConfig
 	Giss GissConfig
+}
+
+type GitServerConfig struct {
+	Url	string `toml:URL`
+	Type	string `toml:Type`
+	Repos	[]string `toml:Repos`
+	SaveCred bool `toml:SaveCred`
+	User	string `toml:User`
+	Token	string `toml:Token`
 }
 
 type RepoConfig struct {
@@ -66,4 +76,17 @@ func getHomeDir() (string, error) {
 		return "", err
 	}
 	return usr.HomeDir, nil
+}
+
+func GetAlias(url string, conf map[string]GitServerConfig) string {
+	for s, v := range conf {
+		if url == v.Url {
+			return s
+		}
+	}
+	return ""
+}
+
+func IsDefinedCred(alias string, conf map[string]GitServerConfig) bool {
+	return conf[alias].User != "" && conf[alias].Token != ""
 }

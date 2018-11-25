@@ -11,9 +11,9 @@ import (
 	"giss/config"
 	"giss/cache"
 	"giss/values"
-	//"giss/apicon"
 	"giss/gitapi"
 	"golang.org/x/crypto/ssh/terminal"
+	"github.com/hinoshiba/go-editor/editor"
 )
 
 var PrintAll bool
@@ -21,7 +21,6 @@ var RepoAutosend bool
 var LineLimit int
 var RunMode string
 var Options []string
-//var Git apicon.Gitea
 var Git gitapi.Apicon
 var Cache cache.Cache
 
@@ -120,33 +119,59 @@ func ComReport() error {
 }
 
 func ComCheckin() error {
-	fmt.Printf("Server      : %s\n",Git.GetUrl())
+	fmt.Printf("CurServer      : %s\n",Git.GetUrl())
 	fmt.Printf("ReportTargetRepository\n")
 	for _, v := range config.Rc.Report.TargetRepo {
 		fmt.Printf("   - %s\n", v)
 	}
-	str, err := inputString("enter the repository you want to use.>>")
+
+	url, err := inputString("enter the server url you want to use.>>")
 	if err != nil {
 		return nil
 	}
-	if str == "" {
-		fmt.Printf("empty input\n")
+	if url == "" {
+		url = Git.GetUrl()
+	}
+
+	alias := config.GetAlias(url,config.Rc.Server)
+	if alias == "" {
+		fmt.Printf("undefined config. can't select this url.\n")
 		return nil
 	}
-		if err := Cache.SaveCurrentGit(str); err != nil {
+
+	fmt.Printf("ReportTargetRepository\n")
+	for _, v := range config.Rc.Server[alias].Repos {
+		fmt.Printf("   - %s\n", v)
+	}
+	repo, err := inputString("enter the repository you want to use.>>")
+	if err != nil {
+		return nil
+	}
+	if repo == "" {
+		fmt.Printf("empty repository name.\n")
+		return nil
+	}
+	if err := Cache.SaveCurrentGit(alias, url, repo); err != nil {
 		return err
 	}
+
 	c, err := cache.LoadCaches()
 	if err != nil {
 		return err
 	}
-	if c.CurrentGit != str {
-		fmt.Printf("checkin failed\n")
+	if c.Url != url {
+		fmt.Printf("checkin failed. empty url.\n")
 		return nil
 
 	}
+	if c.Repo != repo {
+		fmt.Printf("checkin failed. empty repository.\n")
+		return nil
+
+	}
+
 	Cache = c
-	fmt.Printf("checkin :%s\n", Cache.CurrentGit)
+	fmt.Printf("checkin :%s/%s\n", Cache.Url, Cache.Repo)
 	return nil
 }
 
@@ -166,9 +191,23 @@ func ComComment(options []string) error {
 		fmt.Printf("can't detect issue number\n")
 		return nil
 	}
-	if err := Git.AddIssueComment(options[0]); err != nil {
+
+	menu, err := inputString("To continue press the enter key....")
+	if err != nil {
 		return err
 	}
+	if menu != "" {
+		return nil
+	}
+
+	comment, err := editor.Call(config.Rc.Giss.Editor, []byte(""))
+	if err != nil {
+		return nil
+	}
+	if err := Git.AddIssueComment(options[0], comment); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -235,29 +274,46 @@ func ComStatus() error {
 }
 
 func ComLogin() error {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("Enter Username: ")
-    	cruser, err := reader.ReadString('\n')
-	if err != nil {
-		return err
-	}
-	user := strings.Trim(cruser, " \n")
-	fmt.Printf("Enter password:")
- 	passwd, err := terminal.ReadPassword(0)
-	if err != nil {
-		return err
- 	}
-	fmt.Printf("\n\n")
+	var user, token string
 
-
-	if err := Git.Login(user, string(passwd)); err != nil {
-		warn("login failed")
-		return err
+	if !config.IsDefinedCred(Cache.Alias, config.Rc.Server) {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf("Enter Username: ")
+	    	cruser, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		user := strings.Trim(cruser, " \n")
+		fmt.Printf("Enter password:")
+	 	passwd, err := terminal.ReadPassword(0)
+		if err != nil {
+			return err
+	 	}
+		fmt.Printf("\n\n")
+		if err := Git.Login(user, string(passwd)); err != nil {
+			warn("login failed")
+			return err
+		}
+		user = Git.GetUser()
+		token = Git.GetToken()
+	} else {
+		user = config.Rc.Server[Cache.Alias].User
+		token = config.Rc.Server[Cache.Alias].Token
 	}
-	if err := Cache.SaveCred(Git.GetUser(), Git.GetToken()); err != nil {
+
+	if user == "" {
+		fmt.Printf("empty username.\n")
+		return nil
+	}
+	if token == "" {
+		fmt.Printf("empty token.\n")
+		return nil
+	}
+	if err := Cache.SaveCred(user, token); err != nil {
 		warn("cache save failed")
 		return err
 	}
+	fmt.Printf("Login Success. welcome %s !!", user)
 	return nil
 }
 
@@ -311,19 +367,21 @@ func init() {
 	if err := config.LoadUserConfig(); err != nil {
 		die("Error : %s\n", err)
 	}
-	var err error
-	//Git, err = apicon.NewGiteaCredent(config.Rc.GitDefault.Url)
-	Git, err = gitapi.NewGiteaCredent(config.Rc.GitDefault.Url)
-	if err != nil {
-		die("Error : %s\n", err)
-	}
 
+	var err error
 	c, err := cache.LoadCaches()
 	if err != nil {
 		die("Error : %s\n", err)
 	}
+
+	Git, err = gitapi.NewGiteaCredent(config.Rc, c.Alias)
+	if err != nil {
+		die("Error : %s\n", err)
+	}
+
 	Git.LoadCache(c)
 	Cache = c
+	values.DebugVersion()
 }
 
 
