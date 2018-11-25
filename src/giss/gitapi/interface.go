@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"errors"
 	"strings"
+	"net/url"
 	"net/http"
 	"crypto/tls"
 	"giss/cache"
@@ -21,6 +22,8 @@ type Apicon interface {
 	GetUrl() string
 	GetUser() string
 	GetToken() string
+	GetIssue(string) (Issue, []IssueComment, error)
+	GetIssues(bool) ([]Issue, error)
 	SetRepo(string)
 	IsLogined() bool
 	LoadCache(cache.Cache) bool
@@ -30,8 +33,6 @@ type Apicon interface {
 	AddIssueComment(string, []byte) error
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error
-	PrintIssues(int, bool) error
-	PrintIssue(string, bool) error
 	ReportIssues(time.Time) (map[string]string, error)
 }
 
@@ -150,11 +151,26 @@ func dayAgo(t time.Time, ago int) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
-func newClient() *http.Client {
-    tr := &http.Transport{
-        TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
-    }
-    return &http.Client{Transport: tr}
+func newClient() (*http.Client, error) {
+	http_proxy := os.Getenv("http_proxy")
+	if http_proxy == "" {
+		http_proxy = os.Getenv("https_proxy")
+	}
+	if http_proxy != "" {
+		proxy, err := url.Parse(http_proxy)
+		if err != nil {
+			return nil, err
+		}
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
+			Proxy: http.ProxyURL(proxy),
+		}
+		return &http.Client{Transport: tr}, nil
+	}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
+	}
+	return &http.Client{Transport: tr}, nil
 }
 
 func  inputString(menu string) (string, error) {
@@ -217,4 +233,39 @@ func editIssue(issue *Issue, fastedit bool) (bool, error) {
 		fmt.Printf("-----------------------Menu--------------------\n")
 	}
 	return false, nil
+}
+
+func PrintIssue(issue Issue, comments []IssueComment) {
+	fmt.Printf(" [#%d] %s ( %s )\n",issue.Num, issue.Title, issue.User.Name)
+	fmt.Printf(" Status   : %s\n", issue.State)
+	fmt.Printf(" Updateat : %s\n", issue.Update)
+	fmt.Printf("= body =================================================\n")
+	fmt.Printf("%s\n",issue.Body)
+	fmt.Printf("= comments =============================================\n")
+	for _, comment := range comments {
+		fmt.Printf(" [#%d] %s ( %s )\n",
+			comment.Id, comment.Update, comment.User.Name)
+		fmt.Printf("------------------------>\n")
+		fmt.Printf("%s\n",comment.Body)
+		fmt.Printf("------------------------------------------------\n")
+	}
+}
+func PrintIssues(issues []Issue, limit int) {
+	if len(issues) < 1 {
+		return
+	}
+
+	for index, issue := range issues {
+		if index >= limit {
+			break
+		}
+		fmt.Printf(" %04d %s %-012s [ %6s / %-010s ] %s\n",
+			issue.Num,
+			issue.Update.Format("2006/1/2 15:04:05"),
+			issue.User.Name,
+			issue.State,
+			issue.Milestone.Title,
+			issue.Title,
+		)
+	}
 }

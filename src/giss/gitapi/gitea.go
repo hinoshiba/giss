@@ -231,39 +231,10 @@ func (self *Gitea) toggleIssueState(inum string, state string) error {
 	return nil
 }
 
-
-func (self *Gitea) PrintIssue(inum string, detailprint bool) error {
-	if !self.isLogined() {
-		return nil
-	}
-	return self.printIssue(inum, detailprint)
+func (self *Gitea) GetIssue(num string) (Issue, []IssueComment, error) {
+	return self.getIssue(num)
 }
 
-func (self *Gitea) printIssue(inum string, detailprint bool) error {
-	issue, comments, err := self.getIssue(inum)
-	if err != nil {
-		return err
-	}
-	if issue.State == "" {
-		fmt.Printf("undefined ticket: %s\n", inum)
-		return nil
-	}
-
-	fmt.Printf(" [#%d] %s ( %s )\n",issue.Num, issue.Title, issue.User.Name)
-	fmt.Printf(" Status   : %s\n", issue.State)
-	fmt.Printf(" Updateat : %s\n", issue.Update)
-	fmt.Printf("= body =================================================\n")
-	fmt.Printf("%s\n",issue.Body)
-	fmt.Printf("= comments =============================================\n")
-	for _, comment := range comments {
-		fmt.Printf(" [#%d] %s ( %s )\n",
-			comment.Id, comment.Update, comment.User.Name)
-		fmt.Printf("------------------------>\n")
-		fmt.Printf("%s\n",comment.Body)
-		fmt.Printf("------------------------------------------------\n")
-	}
-	return nil
-}
 
 func (self *Gitea) updatePostIssue(inum string, issue *Issue) error {
 	return self.httpIssue("PATCH", inum, issue)
@@ -347,37 +318,8 @@ func (self *Gitea) getIssue(num string) (Issue, []IssueComment, error) {
 	return issue, comments, nil
 }
 
-func (self *Gitea) PrintIssues(limit int, withclose bool) error {
-	if !self.isLogined() {
-		return nil
-	}
-	return self.printIssues(limit, withclose)
-}
-
-func (self *Gitea) printIssues(limit int, withclose bool) error {
-
-	issues, err := self.getIssues(withclose)
-	if err != nil {
-		return err
-	}
-	if len(issues) < 1 {
-		return nil
-	}
-
-	for index, issue := range issues {
-		if index >= limit {
-			break
-		}
-		fmt.Printf(" %04d %s %-012s [ %6s / %-010s ] %s\n",
-			issue.Num,
-			issue.Update.Format("2006/1/2 15:04:05"),
-			issue.User.Name,
-			issue.State,
-			issue.Milestone.Title,
-			issue.Title,
-		)
-	}
-	return nil
+func (self *Gitea) GetIssues(withclose bool) ([]Issue, error) {
+	return self.getIssues(withclose)
 }
 
 func (self *Gitea) ReportIssues(now time.Time) (map[string]string, error) {
@@ -487,7 +429,11 @@ func (self *Gitea) getDefinedToken(username, passwd string) (string, error) {
 	)
 	req.SetBasicAuth(username, passwd)
 
-	client := newClient()
+	client, err := newClient()
+	if err != nil {
+		return "", err
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
        		return "", err
@@ -523,7 +469,11 @@ func (self *Gitea) createReqToken(username, passwd string) (string, error) {
 	req.SetBasicAuth(username, passwd)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := newClient()
+	client, err := newClient()
+	if err != nil {
+		return "", err
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
        		return "", err
@@ -569,7 +519,11 @@ func (self *Gitea) reqHttp(method, url string, param []byte ) ([]byte,
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "token " + self.Token)
 
-	client := newClient()
+	client, err := newClient()
+	if err != nil {
+		return nil, 0, err
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
        		return nil, 0, err

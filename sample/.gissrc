@@ -15,11 +15,24 @@ Port = 25
 To = ["yourmailaddress@example.com", "hinoshiba@example.jp"]
 From = "own@example.com"
 Subject = "weekly issues report"
-To = ["yourmailaddress@example.com", "hinoshiba@example.jp"]
-Header = ["Content-type: text/plain; charset=utf-8"]
+Header = [""]
 
-[GitDefault]
-URL = "https://www.example.com/gitea/"
+[Server.gitea]
+URL = "https://gitea.example.com/gitea/"
+Type = "Gitea" #Default type Gitea, Github, //tbc -> GithubEP, Gogs, Gitlab
+Repos = [ "github/giss" ]
+SaveCred = false
+User = "miladdress@example.com"
+Token = "YourToken"
+
+[Server.github]
+URL = "https://api.github.com/"
+Type = "Github" #Default type Gitea, Github,//tbc -> GithubEP, Gogs, Gitlab
+Repos = [ "hinoshiba/giss_test" ]
+SaveCred = false
+User = "yourmailaddress@example.com"
+Token = "YourToken"
+
 
 [Giss]
 editor = "vim"

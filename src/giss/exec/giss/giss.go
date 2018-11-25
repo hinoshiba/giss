@@ -246,16 +246,32 @@ func ComShow(options []string) error {
 		fmt.Printf("can't detect issue number\n")
 		return nil
 	}
-	if err := Git.PrintIssue(options[0], PrintAll); err != nil {
+
+	issue, comments, err := Git.GetIssue(options[0])
+	if err != nil {
 		return err
 	}
+	if issue.State == "" {
+		fmt.Printf("undefined ticket: %s\n", options[0])
+		return nil
+	}
+
+	gitapi.PrintIssue(issue, comments)
 	return nil
 }
 
 func ComLs() error {
-	if err := Git.PrintIssues(LineLimit, PrintAll); err != nil {
+	issues, err := Git.GetIssues(PrintAll)
+	if err != nil {
+		return err
+	}
+	if len(issues) < 1 {
 		return nil
 	}
+	gitapi.PrintIssues(issues, LineLimit)
+	//if err := Git.PrintIssues(LineLimit, PrintAll); err != nil {
+	//	return nil
+	//}
 	return nil
 }
 
@@ -302,18 +318,18 @@ func ComLogin() error {
 	}
 
 	if user == "" {
-		fmt.Printf("empty username.\n")
+		fmt.Printf("can't autoload username.\n")
 		return nil
 	}
 	if token == "" {
-		fmt.Printf("empty token.\n")
+		fmt.Printf("can't autoload token.\n")
 		return nil
 	}
 	if err := Cache.SaveCred(user, token); err != nil {
 		warn("cache save failed")
 		return err
 	}
-	fmt.Printf("Login Success. welcome %s !!", user)
+	fmt.Printf("Login Success. welcome %s !!\n", user)
 	return nil
 }
 
