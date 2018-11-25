@@ -1,7 +1,5 @@
 package values
 
-import "time"
-
 func DebugVersion() {
 	VersionText = VersionText + " Alpha_2018-11-25_16:56:39"
 }
