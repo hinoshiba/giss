@@ -3,8 +3,7 @@ package values
 import "time"
 
 func DebugVersion() {
-	t := time.Now()
-	VersionText = VersionText + t.Format(" Alpha_2006-01-02_15:04:05")
+	VersionText = VersionText + " Alpha_2018-11-25_16:56:39"
 }
 
 var VersionText string = "Hinoshiba(c) giss command v0.0.8"
