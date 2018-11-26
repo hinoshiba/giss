@@ -63,7 +63,7 @@ type IssueEdited struct {
 	Body   string     `json:"body"`
 	State  string     `json:"state"`
 	User   IssueUser  `json:"user"`
-	Assgin string     `json:"assignee"`
+	//Assgin string     `json:"assignee"`
 }
 
 type Issue struct {
@@ -77,7 +77,7 @@ type Issue struct {
 	Milestone IssueMilestone `json:"milestone"`
 	Update time.Time  `json:"updated_at"`
 	User   IssueUser  `json:"user"`
-	Assgin string     `json:"assignee"`
+//	Assgin string     `json:"assignee"`
 }
 
 type IssueComment struct {
@@ -268,4 +268,18 @@ func PrintIssues(issues []Issue, limit int) {
 			issue.Title,
 		)
 	}
+}
+
+func convIssueEdited(issue Issue) IssueEdited {
+	var nissue IssueEdited
+
+	nissue.Id = issue.Id
+	nissue.Num = issue.Num
+	nissue.Title = issue.Title
+	nissue.Body = issue.Body
+	nissue.State = issue.State
+	nissue.User  = issue.User
+//	nissue.Assgin = issue.Assgin
+
+	return nissue
 }

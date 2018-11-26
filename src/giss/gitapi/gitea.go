@@ -495,19 +495,7 @@ func (self *Gitea) createReqToken(username, passwd string) (string, error) {
 	return token, nil
 }
 
-func convIssueEdited(issue Issue) IssueEdited {
-	var nissue IssueEdited
 
-	nissue.Id = issue.Id
-	nissue.Num = issue.Num
-	nissue.Title = issue.Title
-	nissue.Body = issue.Body
-	nissue.State = issue.State
-	nissue.User  = issue.User
-	nissue.Assgin = issue.Assgin
-
-	return nissue
-}
 
 func (self *Gitea) reqHttp(method, url string, param []byte ) ([]byte,
 								int, error) {
