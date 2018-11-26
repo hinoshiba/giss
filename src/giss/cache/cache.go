@@ -3,7 +3,6 @@ package cache
 import (
 	"os"
 	"os/user"
-	"io/ioutil"
 	"path/filepath"
 	"bufio"
 	"strings"
@@ -16,7 +15,6 @@ type Cache struct {
 	Url string
 	Alias string
 	CacheDir string
-	TmpDir string
 	HomeDir string
 }
 
@@ -66,7 +64,7 @@ func loadCaches(dir string) (Cache, error) {
 	cache.HomeDir = fpath
 
 	cdir := fpath + "/.giss/"
-	if err := checkCacheDir(fpath); err != nil {
+	if err := checkCacheDir(cdir); err != nil {
 		return cache, err
 	}
 	cache.CacheDir = cdir
@@ -94,18 +92,10 @@ func loadCaches(dir string) (Cache, error) {
 		cache.Repo = curgits[2]
 	}
 
-	t, err := ioutil.TempDir(cdir,"giss-cache-")
-	if err != nil {
-		return cache, err
-	}
-	os.RemoveAll(cache.TmpDir)
-	cache.TmpDir = t
-
 	return cache, nil
 }
 
 func checkCacheDir(cdir string) error {
-
 	if _, err := os.Stat(cdir); err != nil {
 		if ferr := os.Mkdir(cdir, 0770); ferr != nil {
 			return ferr

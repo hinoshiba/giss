@@ -17,7 +17,7 @@ type GitServerConfig struct {
 	Url	string `toml:URL`
 	Type	string `toml:Type`
 	Repos	[]string `toml:Repos`
-	SaveCred bool `toml:SaveCred`
+	AutoLogin bool `toml:AutoLogin`
 	User	string `toml:User`
 	Token	string `toml:Token`
 }

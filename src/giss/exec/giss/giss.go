@@ -34,31 +34,56 @@ func warn(s string, msg ...interface{}) {
 }
 
 func giss() error {
-	defer os.RemoveAll(Cache.TmpDir)
-
 	var err error
 	switch RunMode {
 	case "checkin":
 		err = ComCheckin()
 	case "report":
+		if !okGitInit() {
+			break
+		}
 		err = ComReport()
 	case "create":
+		if !okGitInit() {
+			break
+		}
 		err = ComCreate()
 	case "close":
+		if !okGitInit() {
+			break
+		}
 		err = ComClose(Options)
 	case "com":
+		if !okGitInit() {
+			break
+		}
 		err = ComComment(Options)
 	case "edit":
+		if !okGitInit() {
+			break
+		}
 		err = ComEdit(Options)
 	case "open":
+		if !okGitInit() {
+			break
+		}
 		err = ComOpen(Options)
 	case "show":
+		if !okGitInit() {
+			break
+		}
 		err = ComShow(Options)
 	case "ls":
+		if !okGitInit() {
+			break
+		}
 		err = ComLs()
 	case "login":
 		err = ComLogin()
 	case "status":
+		if !okGitInit() {
+			break
+		}
 		err = ComStatus()
 	case "version":
 		err = ComVersion()
@@ -68,6 +93,14 @@ func giss() error {
 		warn("invalid argument : %s \nshow 'help' message.", RunMode)
 	}
 	return err
+}
+
+func okGitInit() bool {
+	if Git == nil {
+		fmt.Printf("empty target repository. you need <giss checkin>.\n")
+		return false
+	}
+	return true
 }
 
 func ComReport() error {
@@ -119,31 +152,48 @@ func ComReport() error {
 }
 
 func ComCheckin() error {
-	fmt.Printf("CurServer      : %s\n",Git.GetUrl())
-	fmt.Printf("ReportTargetRepository\n")
-	for _, v := range config.Rc.Report.TargetRepo {
-		fmt.Printf("   - %s\n", v)
+	var n_alias string
+	var n_url string
+	if Git != nil {
+		n_url = Git.GetUrl()
+		n_alias = config.GetAlias(n_url, config.Rc.Server)
 	}
 
-	url, err := inputString("enter the server url you want to use.>>")
+	if n_alias != "" {
+		fmt.Printf("CurrentServer\n%s : %s\n", n_alias, n_url)
+	}
+	fmt.Printf("=======================================================\n")
+	fmt.Printf("Alias : [Sign User] Server url\n")
+	fmt.Printf("-------------------------------------------------------\n")
+	for i, v := range config.Rc.Server {
+		fmt.Printf("%s : [%s] %s\n", i, v.User, v.Url)
+	}
+	var err error
+	alias, err := inputString("\nenter the server alias you want to use.>>")
 	if err != nil {
 		return nil
 	}
-	if url == "" {
-		url = Git.GetUrl()
+	if alias == "" {
+		if n_alias == "" {
+			fmt.Printf("can't select empty alias.\n")
+			return nil
+		}
+		alias = n_alias
 	}
 
-	alias := config.GetAlias(url,config.Rc.Server)
-	if alias == "" {
-		fmt.Printf("undefined config. can't select this url.\n")
+	url := config.Rc.Server[alias].Url
+	if url == "" {
+		fmt.Printf("undefined alias\n")
 		return nil
 	}
 
-	fmt.Printf("ReportTargetRepository\n")
+	fmt.Printf("=======================================================\n")
+	fmt.Printf("repository names\n")
+	fmt.Printf("-------------------------------------------------------\n")
 	for _, v := range config.Rc.Server[alias].Repos {
-		fmt.Printf("   - %s\n", v)
+		fmt.Printf(" - %s\n", v)
 	}
-	repo, err := inputString("enter the repository you want to use.>>")
+	repo, err := inputString("\nenter the repository you want to use.>>")
 	if err != nil {
 		return nil
 	}
@@ -172,6 +222,10 @@ func ComCheckin() error {
 
 	Cache = c
 	fmt.Printf("checkin :%s/%s\n", Cache.Url, Cache.Repo)
+	if config.Rc.Server[alias].AutoLogin {
+		fmt.Printf("autologin.....\n\n")
+		ComLogin()
+	}
 	return nil
 }
 
@@ -387,19 +441,18 @@ func init() {
 	var err error
 	c, err := cache.LoadCaches()
 	if err != nil {
-		die("Error : %s\n", err)
+		die("can't load a caches : %s\n", err)
 	}
+	Cache = c
 
 	Git, err = gitapi.NewGiteaCredent(config.Rc, c.Alias)
 	if err != nil {
-		die("Error : %s\n", err)
+		return
 	}
-
 	Git.LoadCache(c)
-	Cache = c
+
 	values.DebugVersion()
 }
-
 
 func main() {
 	if err := giss(); err != nil {
