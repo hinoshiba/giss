@@ -3,7 +3,6 @@ package gitapi
 import (
 	"giss/cache"
 	"net/http"
-	"strings"
 	"io/ioutil"
 	"encoding/json"
 	"time"
@@ -401,69 +400,4 @@ func (self *Github) getIssues(withclose bool) ([]Issue, error) {
 		}
 	}
 	return ret, nil
-}
-
-func (self *Github) ReportIssues(now time.Time) (map[string]string, error) {
-	iss, err := self.getIssues(true)
-	if err != nil {
-		return nil, err
-	}
-	if len(iss) < 1 {
-		return nil, nil
-	}
-
-	ret := make(map[string]string)
-	newtag := dayAgo(now, -6)
-	limit := dayAgo(now, -14)
-	for _, is := range iss {
-		if is.Update.Unix() < limit.Unix() && is.State == "closed" {
-			continue
-		}
-
-		time.Sleep(50 * time.Millisecond)
-		ir, err := self.reportIssue(newtag, &is)
-		if err != nil {
-			return nil, err
-		}
-		if is.Milestone.Title == "" {
-			ret["none"] += ir
-			continue
-		}
-		ret[is.Milestone.Title] += ir
-	}
-	return ret, nil
-}
-
-func (self *Github) reportIssue(newtag time.Time, is *Issue) (string, error) {
-	ir := "  - "
-	if is.Update.Unix() >= newtag.Unix() {
-		ir = "+ - "
-	}
-	if is.State == "closed" {
-		ir += "[closed] "
-	}
-	ir += fmt.Sprintf("#%v ",is.Num) + lf2space(onlyLF(is.Title)) + "\n"
-	for _, row := range strings.Split(onlyLF(is.Body),"\n") {
-		ir += makeWithin80c(false,6 ,row)
-	}
-
-	_, coms, err := self.getIssue(fmt.Sprintf("%v",is.Num))
-	if err != nil {
-		return "", err
-	}
-	for _, com := range coms {
-		cr := "    -  "
-		if com.Update.Unix() >= newtag.Unix() {
-		cr = "+   -  "
-		}
-		for i, row := range strings.Split(onlyLF(com.Body),"\n") {
-		if i == 0 {
-			cr += makeWithin80c(true, 5, row)
-			continue
-		}
-		cr += makeWithin80c(false, 5, row)
-		}
-		ir += cr
-	}
-	return ir, nil
 }

@@ -114,7 +114,7 @@ func ComReport() error {
 		Git.SetRepo(v)
 		report_str += "----------------- " + Git.GetRepo()
 		report_str += " ---------------------------------------------\n"
-		report, err := Git.ReportIssues(now)
+		report, err := gitapi.ReportIssues(Git, now)
 		if err != nil {
 			return err
 		}
