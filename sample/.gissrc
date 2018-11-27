@@ -21,7 +21,7 @@ Header = [""]
 URL = "https://gitea.example.com/gitea/"
 Type = "Gitea" #Default type Gitea, Github, //tbc -> GithubEP, Gogs, Gitlab
 Repos = [ "github/giss" ]
-SaveCred = false
+AutoLogin = true
 User = "miladdress@example.com"
 Token = "YourToken"
 
@@ -29,7 +29,7 @@ Token = "YourToken"
 URL = "https://api.github.com/"
 Type = "Github" #Default type Gitea, Github,//tbc -> GithubEP, Gogs, Gitlab
 Repos = [ "hinoshiba/giss_test" ]
-SaveCred = false
+AutoLogin = true
 User = "yourmailaddress@example.com"
 Token = "YourToken"
 
