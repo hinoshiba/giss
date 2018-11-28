@@ -1,7 +1,7 @@
 package values
 
 func DebugVersion() {
-	VersionText = VersionText + " Alpha_2018-11-27_12:36"
+	VersionText = VersionText + " Alpha_2018-11-28_13:56"
 }
 
 var VersionText string = "Hinoshiba(c) giss command v0.0.8"

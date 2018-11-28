@@ -2,6 +2,7 @@ package config
 
 import (
 	"os/user"
+	"path/filepath"
 	"github.com/BurntSushi/toml"
 )
 
@@ -55,7 +56,7 @@ func LoadUserConfig() error {
 		return err
 	}
 
-	cpath := homeDir + "/" + Fname
+	cpath := filepath.Join(homeDir, Fname)
 	return loadConfig(cpath)
 }
 

@@ -405,8 +405,15 @@ func  inputString(menu string) (string, error) {
 		return "", err
 	}
 
-	iline := strings.Trim(istr, " \n")
+	iline := strings.Trim(onlyLF(istr), " \n")
 	return iline, nil
+}
+
+func onlyLF(str string) string {
+	return strings.NewReplacer(
+		"\r\n", "\n",
+		"\r", "\n",
+	).Replace(str)
 }
 
 func init() {

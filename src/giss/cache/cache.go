@@ -37,7 +37,7 @@ func (self *Cache)SaveCred(username string, token string) error {
 
 func (self *Cache)saveCurrentGit(alias string, url string, repo string) error {
 	target := alias + "," + url + "," + repo
-	path := self.CacheDir + "/.currentgit"
+	path := filepath.Join(self.CacheDir, ".currentgit")
 
 	if err := writeParam(path, target); err != nil {
 		return err
@@ -47,7 +47,7 @@ func (self *Cache)saveCurrentGit(alias string, url string, repo string) error {
 
 func (self *Cache)saveCred(username string, token string) error {
 	cred := username + "," + token
-	path := self.CacheDir + "/.cred"
+	path := filepath.Join(self.CacheDir, ".cred")
 
 	if err := writeParam(path, cred); err != nil {
 		return err
@@ -63,13 +63,13 @@ func loadCaches(dir string) (Cache, error) {
 	}
 	cache.HomeDir = fpath
 
-	cdir := fpath + "/.giss/"
+	cdir := filepath.Join(fpath, ".giss")
 	if err := checkCacheDir(cdir); err != nil {
 		return cache, err
 	}
 	cache.CacheDir = cdir
 
-	cfile := cdir + "/.cred"
+	cfile := filepath.Join(cdir, ".cred")
 	fcreds, err := loadParam(cfile)
 	if err != nil {
 		return cache, err
@@ -80,7 +80,7 @@ func loadCaches(dir string) (Cache, error) {
 		cache.Token = creds[1]
 	}
 
-	cafile := cdir + "/.currentgit"
+	cafile := filepath.Join(cdir, ".currentgit")
 	scurgits, err := loadParam(cafile)
 	if err != nil {
 		return cache, err

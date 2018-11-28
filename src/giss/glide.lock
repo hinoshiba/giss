@@ -1,18 +1,18 @@
 hash: 4667809e9a4496b04b0a99667a1b75b72abd7d71f87e62318d0db0332a348221
-updated: 2018-10-25T12:32:09.229549625+09:00
+updated: 2018-11-27T20:07:14.389443467+09:00
 imports:
 - name: github.com/BurntSushi/toml
   version: 3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005
 - name: github.com/hinoshiba/go-editor
-  version: ee88e5c71be35fe834c4257b0fe85ca91b9a8768
+  version: 8fa020f251a9088abe1af473ff54bd2e6da0f8d2
   subpackages:
   - editor
 - name: golang.org/x/crypto
-  version: 74cb1d3d52f4c01cbfb44c1b50d204462f3124c7
+  version: e657309f52e71501f9934566ac06dc5c2f7f11a1
   subpackages:
   - ssh/terminal
 - name: golang.org/x/sys
-  version: 5cd93ef61a7c8f0f858690154eb6de2e69415fa1
+  version: 62eef0e2fa9b2c385f7b2778e763486da6880d37
   subpackages:
   - unix
   - windows
