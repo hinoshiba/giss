@@ -180,7 +180,7 @@ func  inputString(menu string) (string, error) {
 		return "", err
 	}
 
-	iline := strings.Trim(istr, " \n")
+	iline := strings.Trim(onlyLF(istr), " \n")
 	return iline, nil
 }
 
