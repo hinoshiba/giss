@@ -1,4 +1,4 @@
-package apicon
+package httpcl
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"crypto/tls"
 )
 
-func newClient() (*http.Client, error) {
+func NewClient() (*http.Client, error) {
 	http_proxy := os.Getenv("http_proxy")
 	if http_proxy == "" {
 		http_proxy = os.Getenv("https_proxy")

@@ -1,4 +1,4 @@
-package apicon
+package gitea
 
 import (
 	"fmt"
@@ -7,15 +7,9 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"giss/cache"
+	"giss/apicon/httpcl"
+	"giss/apicon/issue"
 )
-
-type JsonToken struct {
-	Name string `json:"name"`
-	Sha1 string `json:"sha1"`
-}
-
-var TokenName string = "giss"
 
 type Gitea struct {
 	url string
@@ -24,16 +18,53 @@ type Gitea struct {
 	token string
 }
 
-func (self *Gitea) LoadCache(c cache.Cache) bool {
-	return self.loadCache(c)
+type IssueEdited struct {
+	Id     int64      `json:"id"`
+	Num    int64      `json:"number"`
+	Title  string     `json:"title"`
+	Body   string     `json:"body"`
+	State  string     `json:"state"`
+	User   IssueUser  `json:"user"`
+	Update time.Time  `json:"updated_at"`
+	Assgin string     `json:"assignee"`
 }
 
-func (self *Gitea) loadCache(c cache.Cache) bool {
-	self.user = c.User
-	self.token = c.Token
-	self.repository = c.Repo
-	self.url = c.Url
-	return self.isLogined()
+type Issue struct {
+	Id     int64      `json:"id"`
+	Num    int64      `json:"number"`
+	Title  string     `json:"title"`
+	Body   string     `json:"body"`
+	Url    string     `json:"url"`
+	State  string     `json:"state"`
+//	Labels IssueLabel `json:"labels"`
+	Milestone IssueMilestone `json:"milestone"`
+	Update time.Time  `json:"updated_at"`
+	User   IssueUser  `json:"user"`
+	Assgin string     `json:"assignee"`
+}
+
+type IssueComment struct {
+	Id     int64      `json:"id"`
+	Body   string     `json:"body"`
+	Update time.Time  `json:"updated_at"`
+	User   IssueUser  `json:"user"`
+}
+
+type IssueLabel struct {
+	Id    int64  `json:"id"`
+	Name  string `json:"name"`
+//	Color string `json:"color"`
+}
+
+type IssueUser struct {
+	Id    int64  `json:"id"`
+	Name string  `json:"username"`
+	Email string `json:"email"`
+}
+
+type IssueMilestone struct {
+	Id     int64  `json:"id"`
+	Title  string `json:"title"`
 }
 
 func (self *Gitea) GetUrl() string {
@@ -100,17 +131,17 @@ func (self *Gitea) isLogined() bool {
 	return true
 }
 
-func (self *Gitea) GetIssues(withclose bool) ([]Issue, error) {
+func (self *Gitea) GetIssues(withclose bool) ([]issue.Body, error) {
 	return self.getIssues(withclose)
 }
 
-func (self *Gitea) getIssues(withclose bool) ([]Issue, error) {
+func (self *Gitea) getIssues(withclose bool) ([]issue.Body, error) {
 	url := self.url + "api/v1/repos/" + self.repository + "/issues?"
 	if withclose {
 		url = url + "&state=all"
 	}
 	var p int = 1
-	var ret []Issue
+	var ret []issue.Body
 	for {
 		u := url + "&page=" + fmt.Sprintf("%v",p)
 		bret, rcode, err := self.reqHttp("GET", u, nil)
@@ -122,93 +153,93 @@ func (self *Gitea) getIssues(withclose bool) ([]Issue, error) {
 			return nil, nil
 		}
 
-		var issues []Issue
-		if err := json.Unmarshal(bret, &issues); err != nil {
+		var iss []issue.Body
+		if err := json.Unmarshal(bret, &iss); err != nil {
 			return nil, err
 		}
-		if len(issues) < 1 {
+		if len(iss) < 1 {
 			break
 		}
 		p += 1
-		for _, v := range issues {
+		for _, v := range iss {
 			ret = append(ret, v)
 		}
 	}
 	return ret, nil
 }
 
-func (self *Gitea) GetIssue(num string) (Issue, []IssueComment, error) {
+func (self *Gitea) GetIssue(num string) (issue.Body, []issue.Comment, error) {
 	return self.getIssue(num)
 }
 
-func (self *Gitea) getIssue(num string) (Issue, []IssueComment, error) {
-	var issue Issue
-	var comments []IssueComment
+func (self *Gitea) getIssue(num string) (issue.Body, []issue.Comment, error) {
+	var is issue.Body
+	var comments []issue.Comment
 	iurl := self.url + "api/v1/repos/" + self.repository + "/issues/" + num
 	curl := iurl + "/comments"
 
 	iret, rcode, err := self.reqHttp("GET", iurl, nil)
 	if err != nil {
-		return issue, comments, err
+		return is, comments, err
 	}
 	if rcode != 200 {
 		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return issue, comments, nil
+		return is, comments, nil
 	}
 	cret, rcode, err := self.reqHttp("GET", curl, nil)
 	if err != nil {
-		return issue, comments, err
+		return is, comments, err
 	}
 	if rcode != 200 {
 		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return issue, comments, nil
+		return is, comments, nil
 	}
 
-	if err := json.Unmarshal(iret, &issue); err != nil {
-		return issue, comments, err
+	if err := json.Unmarshal(iret, &is); err != nil {
+		return is, comments, err
 	}
 	if err := json.Unmarshal(cret, &comments); err != nil {
-		return issue, comments, err
+		return is, comments, err
 	}
-	return issue, comments, nil
+	return is, comments, nil
 }
 
-func (self *Gitea) CreateIssue(ie IssueEdited) error {
+func (self *Gitea) CreateIssue(ie issue.Edited) error {
 	if !self.isLogined() {
 		return nil
 	}
 	return self.createIssue(ie)
 }
 
-func (self *Gitea) createIssue(ie IssueEdited) error {
+func (self *Gitea) createIssue(ie issue.Edited) error {
 	if err := self.postIssue(&ie); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (self *Gitea) AddIssueComment(inum string, comment []byte) error {
+func (self *Gitea) AddIssueComment(inum string, comment string) error {
 	if !self.isLogined() {
 		return nil
 	}
 	return self.addIssueComment(inum, comment)
 }
 
-func (self *Gitea) addIssueComment(inum string, comment []byte) error {
-	if err := self.httpReqComment("POST", inum, string(comment)); err != nil {
+func (self *Gitea) addIssueComment(inum string, comment string) error {
+	if err := self.httpReqComment("POST", inum, comment); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (self *Gitea) ModifyIssue(inum string, ie IssueEdited) error {
+func (self *Gitea) ModifyIssue(inum string, ie issue.Edited) error {
 	if !self.isLogined() {
 		return nil
 	}
 	return self.modifyIssue(inum, ie)
 }
 
-func (self *Gitea) modifyIssue(inum string, ie IssueEdited) error {
+func (self *Gitea) modifyIssue(inum string, ie issue.Edited) error {
 	if err := self.updatePostIssue(inum, &ie); err != nil {
 		return err
 	}
@@ -248,46 +279,46 @@ func (self *Gitea) toggleIssueState(inum string, state string) error {
 		fmt.Printf("unknown state :%s\n", state)
 		return nil
 	}
-	issue, _, err := self.getIssue(inum)
+	is, _, err := self.getIssue(inum)
 	if err != nil {
 		return err
 	}
-	if issue.State == "" {
+	if is.State == "" {
 		fmt.Printf("undefined ticket: %s\n", inum)
 		return nil
 	}
-	if issue.State == state {
+	if is.State == state {
 		fmt.Printf("this issue already state : %s\n", state)
 		return nil
 	}
 
-	old := issue.Update
-	issue.State = state
-	eissue := ConvIssueEdited(issue)
-	if err := self.updatePostIssue(inum, &eissue); err != nil {
+	old := is.Update
+	is.State = state
+	eis := ConvIssueEdited(is)
+	if err := self.updatePostIssue(inum, &eis); err != nil {
 		return err
 	}
-	if old == issue.Update {
+	if old == is.Update {
 		fmt.Printf("not update\n")
 		return nil
 	}
 
-	fmt.Printf("state updated : %s\n", issue.State)
+	fmt.Printf("state updated : %s\n", is.State)
 	return nil
 }
 
-func (self *Gitea) postIssue(issue *IssueEdited) error {
-	return self.httpReqIssue("POST", "", issue)
+func (self *Gitea) postIssue(is *issue.Edited) error {
+	return self.httpReqIssue("POST", "", is)
 }
 
-func (self *Gitea) updatePostIssue(inum string, issue *IssueEdited) error {
-	return self.httpReqIssue("PATCH", inum, issue)
+func (self *Gitea) updatePostIssue(inum string, is *issue.Edited) error {
+	return self.httpReqIssue("PATCH", inum, is)
 }
 
 func (self *Gitea) httpReqComment(method string , inum string, body string) error {
 	url := self.url + "api/v1/repos/" + self.repository +
 						"/issues/" + inum + "/comments"
-	json_str := `{"Body":"`+ lf2Esclf(onlyLF(body)) + `"}`
+	json_str := `{"Body":"`+ body + `"}`
 	_, rcode, err := self.reqHttp(method, url, []byte(json_str))
 	if err != nil {
 		return err
@@ -300,13 +331,11 @@ func (self *Gitea) httpReqComment(method string , inum string, body string) erro
 	return nil
 }
 
-func (self *Gitea) httpReqIssue(method string , inum string, issue *IssueEdited) error {
+func (self *Gitea) httpReqIssue(method string , inum string, is *issue.Edited) error {
 	url := self.url + "api/v1/repos/" + self.repository + "/issues/" + inum
 
-	issue.Update = time.Now()
-	issue.Title = lf2space(onlyLF(issue.Title))
-	issue.Body = onlyLF(issue.Body)
-	ijson, err := json.Marshal(*issue)
+	is.Update = time.Now()
+	ijson, err := json.Marshal(*is)
 	if err != nil {
 		return err
 	}
@@ -319,10 +348,10 @@ func (self *Gitea) httpReqIssue(method string , inum string, issue *IssueEdited)
 		return nil
 	}
 
-	if err := json.Unmarshal(iret, &issue); err != nil {
+	if err := json.Unmarshal(iret, &is); err != nil {
 		return err
 	}
-	fmt.Printf("issue posted : #%v\n",issue.Num)
+	fmt.Printf("issue posted : #%v\n",is.Num)
 	return nil
 }
 
@@ -336,7 +365,7 @@ func (self *Gitea) reqHttp(method, url string, param []byte ) ([]byte,
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "token " + self.token)
 
-	client, err := newClient()
+	client, err := httpcl.NewClient()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -461,4 +490,22 @@ func (self *Gitea) createReqToken(username, passwd string) (string, error) {
 	}
 	return token, nil
 }
+var TokenName string = "giss"
+type JsonToken struct {
+	Name string `json:"name"`
+	Sha1 string `json:"sha1"`
+}
 */
+func ConvIssueEdited(is issue.Body) issue.Edited {
+	var nis issue.Edited
+
+	nis.Id = is.Id
+	nis.Num = is.Num
+	nis.Title = is.Title
+	nis.Body = is.Body
+	nis.State = is.State
+	nis.User  = is.User
+//	nissue.Assgin = issue.Assgin
+
+	return nis
+}

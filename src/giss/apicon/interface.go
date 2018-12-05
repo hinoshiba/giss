@@ -9,6 +9,8 @@ import (
 	"strings"
 	//"giss/cache"
 	"giss/conf"
+	"giss/apicon/issue"
+	"giss/apicon/gitea"
 	"github.com/hinoshiba/go-editor/editor"
 )
 
@@ -23,31 +25,14 @@ type Apicon interface {
 	SetUsername(string)
 	GetToken() string
 	SetToken(string)
-	GetIssue(string) (Issue, []IssueComment, error)
-	GetIssues(bool) ([]Issue, error)
-	CreateIssue(IssueEdited) error
-	ModifyIssue(string, IssueEdited) error
-	AddIssueComment(string, []byte) error
+	GetIssue(string) (issue.Body, []issue.Comment, error)
+	GetIssues(bool) ([]issue.Body, error)
+	CreateIssue(issue.Edited) error
+	ModifyIssue(string, issue.Edited) error
+	AddIssueComment(string, string) error
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error
 	IsLogined() bool
-	/* old
-	GetUrl() string
-	GetUser() string
-	GetToken() string
-	GetIssue(string) (Issue, []IssueComment, error)
-	GetIssues(bool) ([]Issue, error)
-	CreateIssue() error
-	AddIssueComment(string, []byte) error
-	DoOpenIssue(string) error
-	DoCloseIssue(string) error
-	ModifyIssue(string) error
-	SetRepo(string)
-	GetRepo() string
-	IsLogined() bool
-	LoadCache(cache.Cache) bool
-	Login(string, string) error
-//	*/
 }
 
 func NewApicon(rc conf.Conf, alias string) (Apicon, error) {
@@ -55,9 +40,9 @@ func NewApicon(rc conf.Conf, alias string) (Apicon, error) {
 	var ret Apicon
 	switch apitype {
 		case "Gitea":
-			var gitea Gitea
+			var obj gitea.Gitea
 			Conf = rc
-			ret = &gitea
+			ret = &obj
 			return ret, nil
 			/*
 		case "Github":
@@ -70,55 +55,6 @@ func NewApicon(rc conf.Conf, alias string) (Apicon, error) {
 
 	err := errors.New(fmt.Sprintf("selected unknown api type : %s",alias))
 	return ret, err
-}
-
-type IssueEdited struct {
-	Id     int64      `json:"id"`
-	Num    int64      `json:"number"`
-	Title  string     `json:"title"`
-	Body   string     `json:"body"`
-	State  string     `json:"state"`
-	User   IssueUser  `json:"user"`
-	Update time.Time  `json:"updated_at"`
-	//Assgin string     `json:"assignee"`
-}
-
-type Issue struct {
-	Id     int64      `json:"id"`
-	Num    int64      `json:"number"`
-	Title  string     `json:"title"`
-	Body   string     `json:"body"`
-	Url    string     `json:"url"`
-	State  string     `json:"state"`
-//	Labels IssueLabel `json:"labels"`
-	Milestone IssueMilestone `json:"milestone"`
-	Update time.Time  `json:"updated_at"`
-	User   IssueUser  `json:"user"`
-//	Assgin string     `json:"assignee"`
-}
-
-type IssueComment struct {
-	Id     int64      `json:"id"`
-	Body   string     `json:"body"`
-	Update time.Time  `json:"updated_at"`
-	User   IssueUser  `json:"user"`
-}
-
-type IssueLabel struct {
-	Id    int64  `json:"id"`
-	Name  string `json:"name"`
-//	Color string `json:"color"`
-}
-
-type IssueUser struct {
-	Id    int64  `json:"id"`
-	Name string  `json:"username"`
-	Email string `json:"email"`
-}
-
-type IssueMilestone struct {
-	Id     int64  `json:"id"`
-	Title  string `json:"title"`
 }
 
 func makeWithin80c(inithead bool, hs int, str string) string {
@@ -180,14 +116,14 @@ func  inputString(menu string) (string, error) {
 	return iline, nil
 }
 
-func EditIssue(issue *Issue, fastedit bool) (bool, error) {
+func EditIssue(is *issue.Body, fastedit bool) (bool, error) {
 	if fastedit {
-		b, err := editor.Call(Conf.Giss.Editor, []byte(issue.Title))
+		b, err := editor.Call(Conf.Giss.Editor, []byte(is.Title))
 		if err != nil {
 			return false, err
 		}
-		issue.Title = string(b)
-		fmt.Printf("Title : %s\n", issue.Title)
+		is.Title = lf2space(onlyLF(string(b)))
+		fmt.Printf("Title : %s\n", is.Title)
 	}
 	for {
 		fmt.Printf("edit option  \n\tt: title, b: body\n")
@@ -199,22 +135,22 @@ func EditIssue(issue *Issue, fastedit bool) (bool, error) {
 		switch menu {
 		case "p":
 			fmt.Printf("\n\n================ISSUE=============\n")
-			fmt.Printf("Title : %s\n", issue.Title)
-			fmt.Printf("Body ------->  \n%s\n", issue.Body)
+			fmt.Printf("Title : %s\n", is.Title)
+			fmt.Printf("Body ------->  \n%s\n", is.Body)
 			fmt.Printf("\n================END===============\n\n\n")
 		case "t":
-			b, err := editor.Call(Conf.Giss.Editor, []byte(issue.Title))
+			b, err := editor.Call(Conf.Giss.Editor, []byte(is.Title))
 			if err != nil {
 				return false, err
 			}
-			issue.Title = string(b)
+			is.Title = lf2space(onlyLF(string(b)))
 			fmt.Printf("title eddited\n")
 		case "b":
-			b, err := editor.Call(Conf.Giss.Editor, []byte(issue.Body))
+			b, err := editor.Call(Conf.Giss.Editor, []byte(is.Body))
 			if err != nil {
 				return false, err
 			}
-			issue.Body = string(b)
+			is.Body = onlyLF(string(b))
 			fmt.Printf("body eddited\n")
 		case "done":
 			fmt.Printf("done...\n")
@@ -230,12 +166,12 @@ func EditIssue(issue *Issue, fastedit bool) (bool, error) {
 	return false, nil
 }
 
-func PrintIssue(issue Issue, comments []IssueComment) {
-	fmt.Printf(" [#%d] %s ( %s )\n",issue.Num, issue.Title, issue.User.Name)
-	fmt.Printf(" Status   : %s\n", issue.State)
-	fmt.Printf(" Updateat : %s\n", issue.Update)
+func PrintIssue(is issue.Body, comments []issue.Comment) {
+	fmt.Printf(" [#%d] %s ( %s )\n",is.Num, is.Title, is.User.Name)
+	fmt.Printf(" Status   : %s\n", is.State)
+	fmt.Printf(" Updateat : %s\n", is.Update)
 	fmt.Printf("= body =================================================\n")
-	fmt.Printf("%s\n",issue.Body)
+	fmt.Printf("%s\n",is.Body)
 	fmt.Printf("= comments =============================================\n")
 	for _, comment := range comments {
 		fmt.Printf(" [#%d] %s ( %s )\n",
@@ -245,38 +181,38 @@ func PrintIssue(issue Issue, comments []IssueComment) {
 		fmt.Printf("------------------------------------------------\n")
 	}
 }
-func PrintIssues(issues []Issue, limit int) {
-	if len(issues) < 1 {
+func PrintIssues(iss []issue.Body, limit int) {
+	if len(iss) < 1 {
 		return
 	}
 
-	for index, issue := range issues {
+	for index, is := range iss {
 		if index >= limit {
 			break
 		}
 		fmt.Printf(" %04d %s %-012s [ %6s / %-010s ] %s\n",
-			issue.Num,
-			issue.Update.Format("2006/1/2 15:04:05"),
-			issue.User.Name,
-			issue.State,
-			issue.Milestone.Title,
-			issue.Title,
+			is.Num,
+			is.Update.Format("2006/1/2 15:04:05"),
+			is.User.Name,
+			is.State,
+			is.Milestone.Title,
+			is.Title,
 		)
 	}
 }
 
-func ConvIssueEdited(issue Issue) IssueEdited {
-	var nissue IssueEdited
+func ConvIssueEdited(is issue.Body) issue.Edited {
+	var nis issue.Edited
 
-	nissue.Id = issue.Id
-	nissue.Num = issue.Num
-	nissue.Title = issue.Title
-	nissue.Body = issue.Body
-	nissue.State = issue.State
-	nissue.User  = issue.User
+	nis.Id = is.Id
+	nis.Num = is.Num
+	nis.Title = is.Title
+	nis.Body = is.Body
+	nis.State = is.State
+	nis.User  = is.User
 //	nissue.Assgin = issue.Assgin
 
-	return nissue
+	return nis
 }
 
 func ReportIssues(git Apicon, now time.Time) (map[string]string, error) {
@@ -310,7 +246,7 @@ func ReportIssues(git Apicon, now time.Time) (map[string]string, error) {
 	return ret, nil
 }
 
-func reportIssue(git Apicon, newtag time.Time, is *Issue) (string, error) {
+func reportIssue(git Apicon, newtag time.Time, is *issue.Body) (string, error) {
 	ir := "  - "
 	if is.Update.Unix() >= newtag.Unix() {
 		ir = "+ - "

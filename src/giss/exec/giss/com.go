@@ -10,6 +10,7 @@ import (
 	"giss/cache"
 	"giss/apicon"
 	"giss/values"
+	"giss/apicon/issue"
 	//"golang.org/x/crypto/ssh/terminal"
 	"github.com/hinoshiba/go-editor/editor"
 )
@@ -156,7 +157,8 @@ func ComComment(options []string) error {
 	if err != nil {
 		return nil
 	}
-	if err := Apicon.AddIssueComment(options[0], comment); err != nil {
+	scomment := lf2Esclf(onlyLF(string(comment)))
+	if err := Apicon.AddIssueComment(options[0], scomment); err != nil {
 		return err
 	}
 
@@ -189,12 +191,12 @@ func ComEdit(options []string) error {
 }
 
 func ComCreate() error {
-	var issue apicon.Issue
-	if ok, err := apicon.EditIssue(&issue, true); !ok {
+	var is issue.Body
+	if ok, err := apicon.EditIssue(&is, true); !ok {
 		return err
 	}
 
-	err := Apicon.CreateIssue(apicon.ConvIssueEdited(issue))
+	err := Apicon.CreateIssue(apicon.ConvIssueEdited(is))
 	if err != nil {
 		return err
 	}
@@ -341,4 +343,16 @@ func inputString(menu string) (string, error) {
 var STRINGSLF = strings.NewReplacer("\r\n", "\n", "\r", "\n",)
 func onlyLF(str string) string {
 	return STRINGSLF.Replace(str)
+}
+
+func lf2Esclf(str string) string {
+	return strings.NewReplacer(
+		"\n", "\\n",
+	).Replace(str)
+}
+
+func lf2space(str string) string {
+	return strings.NewReplacer(
+		"\n", " ",
+	).Replace(str)
 }
