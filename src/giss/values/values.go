@@ -1,10 +1,10 @@
 package values
 
 func DebugVersion() {
-	VersionText = VersionText + " Alpha_2018-11-28_13:56"
+	VersionText = VersionText + " Alpha_2018-12-06_01:13"
 }
 
-var VersionText string = "Hinoshiba(c) giss command v0.0.8"
+var VersionText string = "Hinoshiba(c) giss command v0.1.0"
 var HelpText string = `---------------------------------------------------------
 `+ VersionText + `
 
@@ -41,3 +41,4 @@ If you have any problems, please contact to <https://github.com/hinoshiba/giss/>
 Whether to create a description is undecided.
 ---------------------------------------------------------
 `
+

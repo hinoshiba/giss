@@ -1,4 +1,4 @@
-package gitapi
+package apicon
 
 import (
 	"os"
@@ -7,35 +7,50 @@ import (
 	"bufio"
 	"errors"
 	"strings"
-	"net/url"
-	"net/http"
-	"crypto/tls"
-	"giss/cache"
-	"giss/config"
+	//"giss/cache"
+	"giss/conf"
 	"github.com/hinoshiba/go-editor/editor"
 )
 
-var Conf config.Config
+var Conf conf.Conf
 
 type Apicon interface {
-	GetRepo() string
+	GetRepositoryName() string
+	SetRepositoryName(string)
+	GetUrl() string
+	SetUrl(string)
+	GetUsername() string
+	SetUsername(string)
+	GetToken() string
+	SetToken(string)
+	GetIssue(string) (Issue, []IssueComment, error)
+	GetIssues(bool) ([]Issue, error)
+	CreateIssue(IssueEdited) error
+	ModifyIssue(string, IssueEdited) error
+	AddIssueComment(string, []byte) error
+	DoOpenIssue(string) error
+	DoCloseIssue(string) error
+	IsLogined() bool
+	/* old
 	GetUrl() string
 	GetUser() string
 	GetToken() string
 	GetIssue(string) (Issue, []IssueComment, error)
 	GetIssues(bool) ([]Issue, error)
-	SetRepo(string)
-	IsLogined() bool
-	LoadCache(cache.Cache) bool
-	Login(string, string) error
 	CreateIssue() error
-	ModifyIssue(string) error
 	AddIssueComment(string, []byte) error
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error
+	ModifyIssue(string) error
+	SetRepo(string)
+	GetRepo() string
+	IsLogined() bool
+	LoadCache(cache.Cache) bool
+	Login(string, string) error
+//	*/
 }
 
-func NewGiteaCredent(rc config.Config, alias string) (Apicon, error) {
+func NewApicon(rc conf.Conf, alias string) (Apicon, error) {
 	apitype := rc.Server[alias].Type
 	var ret Apicon
 	switch apitype {
@@ -44,11 +59,13 @@ func NewGiteaCredent(rc config.Config, alias string) (Apicon, error) {
 			Conf = rc
 			ret = &gitea
 			return ret, nil
+			/*
 		case "Github":
 			var github Github
 			Conf = rc
 			ret = &github
 			return ret, nil
+			*/
 	}
 
 	err := errors.New(fmt.Sprintf("selected unknown api type : %s",alias))
@@ -62,6 +79,7 @@ type IssueEdited struct {
 	Body   string     `json:"body"`
 	State  string     `json:"state"`
 	User   IssueUser  `json:"user"`
+	Update time.Time  `json:"updated_at"`
 	//Assgin string     `json:"assignee"`
 }
 
@@ -89,7 +107,7 @@ type IssueComment struct {
 type IssueLabel struct {
 	Id    int64  `json:"id"`
 	Name  string `json:"name"`
-	Color string `json:"color"`
+//	Color string `json:"color"`
 }
 
 type IssueUser struct {
@@ -150,28 +168,6 @@ func dayAgo(t time.Time, ago int) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
-func newClient() (*http.Client, error) {
-	http_proxy := os.Getenv("http_proxy")
-	if http_proxy == "" {
-		http_proxy = os.Getenv("https_proxy")
-	}
-	if http_proxy != "" {
-		proxy, err := url.Parse(http_proxy)
-		if err != nil {
-			return nil, err
-		}
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
-			Proxy: http.ProxyURL(proxy),
-		}
-		return &http.Client{Transport: tr}, nil
-	}
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
-	}
-	return &http.Client{Transport: tr}, nil
-}
-
 func  inputString(menu string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf(menu)
@@ -184,7 +180,7 @@ func  inputString(menu string) (string, error) {
 	return iline, nil
 }
 
-func editIssue(issue *Issue, fastedit bool) (bool, error) {
+func EditIssue(issue *Issue, fastedit bool) (bool, error) {
 	if fastedit {
 		b, err := editor.Call(Conf.Giss.Editor, []byte(issue.Title))
 		if err != nil {
@@ -269,7 +265,7 @@ func PrintIssues(issues []Issue, limit int) {
 	}
 }
 
-func convIssueEdited(issue Issue) IssueEdited {
+func ConvIssueEdited(issue Issue) IssueEdited {
 	var nissue IssueEdited
 
 	nissue.Id = issue.Id

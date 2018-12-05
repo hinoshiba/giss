@@ -1,4 +1,4 @@
-package config
+package conf
 
 import (
 	"os/user"
@@ -6,7 +6,11 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type Config struct {
+const (
+	Fname string = ".gissrc"
+)
+
+type Conf struct {
 	Report RepoConfig
 	Mail MailConfig
 	GitDefault  GitDefaultConfig
@@ -47,28 +51,25 @@ type GissConfig struct {
 	Editor string `toml:"editor"`
 }
 
-var Rc Config
-var Fname string = ".gissrc"
-
-func LoadUserConfig() error {
+func LoadUserConfig() (Conf, error) {
+	var conf Conf
 	homeDir, err := getHomeDir()
 	if err != nil {
-		return err
+		return conf, err
 	}
 
 	cpath := filepath.Join(homeDir, Fname)
 	return loadConfig(cpath)
 }
 
-func loadConfig(path string) error {
-	var config Config
+func loadConfig(path string) (Conf, error) {
+	var conf Conf
 
-	if _, err := toml.DecodeFile(path, &config); err != nil {
-		return err
+	if _, err := toml.DecodeFile(path, &conf); err != nil {
+		return conf, err
 	}
 
-	Rc = config
-	return nil
+	return conf, nil
 }
 
 func getHomeDir() (string, error) {
@@ -79,8 +80,8 @@ func getHomeDir() (string, error) {
 	return usr.HomeDir, nil
 }
 
-func GetAlias(url string, conf map[string]GitServerConfig) string {
-	for s, v := range conf {
+func (self *Conf) GetAlias(url string) string {
+	for s, v := range self.Server {
 		if url == v.Url {
 			return s
 		}
@@ -88,6 +89,6 @@ func GetAlias(url string, conf map[string]GitServerConfig) string {
 	return ""
 }
 
-func IsDefinedCred(alias string, conf map[string]GitServerConfig) bool {
-	return conf[alias].User != "" && conf[alias].Token != ""
+func (self *Conf) IsDefinedCred(alias string) bool {
+	return self.Server[alias].User != "" && self.Server[alias].Token != ""
 }

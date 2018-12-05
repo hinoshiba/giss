@@ -47,7 +47,6 @@ func (self *Smtp) MakeMail ( header, to []string, sub string, b []byte) error {
 }
 
 func slice2str(sl []string) string {
-
 	var str string
 	for i, row := range sl {
 		if i == 0 {
@@ -57,11 +56,9 @@ func slice2str(sl []string) string {
 		str = str + "," + row
 	}
 	return str
-
 }
 
 func slice2mlstr(sl []string) string {
-
 	var str string
 	for i, row := range sl {
 		if i == 0 {
@@ -71,10 +68,9 @@ func slice2mlstr(sl []string) string {
 		str = str + "\r\n" + row
 	}
 	return str
-
 }
 
-func (self *Smtp) Send () error {
+func (self *Smtp) Send() error {
 	if err := smtp.SendMail(self.server, nil,
 		self.from, self.to, self.body); err != nil {
 			return err
