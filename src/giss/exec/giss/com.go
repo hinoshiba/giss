@@ -90,6 +90,9 @@ func ComCheckin() error {
 		}
 		alias = n_alias
 	}
+	if _, err := apicon.NewApicon(Conf, alias); err != nil {
+		return err
+	}
 
 	url := Conf.Server[alias].Url
 	if url == "" {
@@ -111,6 +114,7 @@ func ComCheckin() error {
 		fmt.Printf("empty repository name.\n")
 		return nil
 	}
+
 	if err := Cache.SaveCurrentGit(alias, url, repo); err != nil {
 		return err
 	}
