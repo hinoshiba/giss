@@ -27,8 +27,8 @@ type Apicon interface {
 	SetToken(string)
 	GetIssue(string) (issue.Body, []issue.Comment, error)
 	GetIssues(bool) ([]issue.Body, error)
-	CreateIssue(issue.Edited) error
-	ModifyIssue(string, issue.Edited) error
+	CreateIssue(issue.Body) error
+	ModifyIssue(string, issue.Body) error
 	AddIssueComment(string, string) error
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error
@@ -181,6 +181,7 @@ func PrintIssue(is issue.Body, comments []issue.Comment) {
 		fmt.Printf("------------------------------------------------\n")
 	}
 }
+
 func PrintIssues(iss []issue.Body, limit int) {
 	if len(iss) < 1 {
 		return
@@ -199,20 +200,6 @@ func PrintIssues(iss []issue.Body, limit int) {
 			is.Title,
 		)
 	}
-}
-
-func ConvIssueEdited(is issue.Body) issue.Edited {
-	var nis issue.Edited
-
-	nis.Id = is.Id
-	nis.Num = is.Num
-	nis.Title = is.Title
-	nis.Body = is.Body
-	nis.State = is.State
-	nis.User  = is.User
-//	nissue.Assgin = issue.Assgin
-
-	return nis
 }
 
 func ReportIssues(git Apicon, now time.Time) (map[string]string, error) {

@@ -11,7 +11,6 @@ import (
 	"giss/apicon"
 	"giss/values"
 	"giss/apicon/issue"
-	//"golang.org/x/crypto/ssh/terminal"
 	"github.com/hinoshiba/go-editor/editor"
 )
 
@@ -184,7 +183,7 @@ func ComEdit(options []string) error {
 	if ok, err := apicon.EditIssue(&issue, false); !ok {
 		return err
 	}
-	if err := Apicon.ModifyIssue(inum, apicon.ConvIssueEdited(issue)); err != nil {
+	if err := Apicon.ModifyIssue(inum, issue); err != nil {
 		return err
 	}
 	return nil
@@ -196,7 +195,7 @@ func ComCreate() error {
 		return err
 	}
 
-	err := Apicon.CreateIssue(apicon.ConvIssueEdited(is))
+	err := Apicon.CreateIssue(is)
 	if err != nil {
 		return err
 	}

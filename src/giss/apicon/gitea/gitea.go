@@ -18,18 +18,18 @@ type Gitea struct {
 	token string
 }
 
-type IssueEdited struct {
+type iIssueE struct {
 	Id     int64      `json:"id"`
 	Num    int64      `json:"number"`
 	Title  string     `json:"title"`
 	Body   string     `json:"body"`
 	State  string     `json:"state"`
-	User   IssueUser  `json:"user"`
+	User   iIUser  `json:"user"`
 	Update time.Time  `json:"updated_at"`
 	Assgin string     `json:"assignee"`
 }
 
-type Issue struct {
+type iIssue struct {
 	Id     int64      `json:"id"`
 	Num    int64      `json:"number"`
 	Title  string     `json:"title"`
@@ -37,32 +37,32 @@ type Issue struct {
 	Url    string     `json:"url"`
 	State  string     `json:"state"`
 //	Labels IssueLabel `json:"labels"`
-	Milestone IssueMilestone `json:"milestone"`
+	Milestone iIMilestone `json:"milestone"`
 	Update time.Time  `json:"updated_at"`
-	User   IssueUser  `json:"user"`
+	User   iIUser `json:"user"`
 	Assgin string     `json:"assignee"`
 }
 
-type IssueComment struct {
+type iIComment struct {
 	Id     int64      `json:"id"`
 	Body   string     `json:"body"`
 	Update time.Time  `json:"updated_at"`
-	User   IssueUser  `json:"user"`
+	User   iIUser     `json:"user"`
 }
 
-type IssueLabel struct {
+type iILabel struct {
 	Id    int64  `json:"id"`
 	Name  string `json:"name"`
-//	Color string `json:"color"`
+	Color string `json:"color"`
 }
 
-type IssueUser struct {
+type iIUser struct {
 	Id    int64  `json:"id"`
 	Name string  `json:"username"`
 	Email string `json:"email"`
 }
 
-type IssueMilestone struct {
+type iIMilestone struct {
 	Id     int64  `json:"id"`
 	Title  string `json:"title"`
 }
@@ -132,16 +132,26 @@ func (self *Gitea) isLogined() bool {
 }
 
 func (self *Gitea) GetIssues(withclose bool) ([]issue.Body, error) {
-	return self.getIssues(withclose)
+	var iss []issue.Body
+
+	i_iss, err := self.getIssues(withclose)
+	if err != nil {
+		return iss, err
+	}
+
+	for _, v := range i_iss {
+		iss = append(iss, iIssue2Issue(v))
+	}
+	return iss, nil
 }
 
-func (self *Gitea) getIssues(withclose bool) ([]issue.Body, error) {
+func (self *Gitea) getIssues(withclose bool) ([]iIssue, error) {
 	url := self.url + "api/v1/repos/" + self.repository + "/issues?"
 	if withclose {
 		url = url + "&state=all"
 	}
 	var p int = 1
-	var ret []issue.Body
+	var ret []iIssue
 	for {
 		u := url + "&page=" + fmt.Sprintf("%v",p)
 		bret, rcode, err := self.reqHttp("GET", u, nil)
@@ -153,7 +163,7 @@ func (self *Gitea) getIssues(withclose bool) ([]issue.Body, error) {
 			return nil, nil
 		}
 
-		var iss []issue.Body
+		var iss []iIssue
 		if err := json.Unmarshal(bret, &iss); err != nil {
 			return nil, err
 		}
@@ -169,12 +179,24 @@ func (self *Gitea) getIssues(withclose bool) ([]issue.Body, error) {
 }
 
 func (self *Gitea) GetIssue(num string) (issue.Body, []issue.Comment, error) {
-	return self.getIssue(num)
+	var is issue.Body
+	var coms []issue.Comment
+
+	i_is, i_icoms, err := self.getIssue(num)
+	if err != nil {
+		return is, coms, err
+	}
+
+	is = iIssue2Issue(i_is)
+	for _, i_com := range i_icoms {
+		coms = append(coms, iIComment2IssueComment(i_com))
+	}
+	return is, coms, nil
 }
 
-func (self *Gitea) getIssue(num string) (issue.Body, []issue.Comment, error) {
-	var is issue.Body
-	var comments []issue.Comment
+func (self *Gitea) getIssue(num string) (iIssue, []iIComment, error) {
+	var is iIssue
+	var comments []iIComment
 	iurl := self.url + "api/v1/repos/" + self.repository + "/issues/" + num
 	curl := iurl + "/comments"
 
@@ -204,24 +226,20 @@ func (self *Gitea) getIssue(num string) (issue.Body, []issue.Comment, error) {
 	return is, comments, nil
 }
 
-func (self *Gitea) CreateIssue(ie issue.Edited) error {
-	if !self.isLogined() {
-		return nil
-	}
-	return self.createIssue(ie)
+func (self *Gitea) CreateIssue(is issue.Body) error {
+	i_is := Issue2iIssue(is)
+	i_ise := iIssue2iIssueE(i_is)
+	return self.createIssue(i_ise)
 }
 
-func (self *Gitea) createIssue(ie issue.Edited) error {
-	if err := self.postIssue(&ie); err != nil {
+func (self *Gitea) createIssue(ise iIssueE)  error {
+	if err := self.postIssue(&ise); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (self *Gitea) AddIssueComment(inum string, comment string) error {
-	if !self.isLogined() {
-		return nil
-	}
 	return self.addIssueComment(inum, comment)
 }
 
@@ -232,15 +250,14 @@ func (self *Gitea) addIssueComment(inum string, comment string) error {
 	return nil
 }
 
-func (self *Gitea) ModifyIssue(inum string, ie issue.Edited) error {
-	if !self.isLogined() {
-		return nil
-	}
-	return self.modifyIssue(inum, ie)
+func (self *Gitea) ModifyIssue(inum string, is issue.Body) error {
+	i_is := Issue2iIssue(is)
+	i_ise := iIssue2iIssueE(i_is)
+	return self.modifyIssue(inum, i_ise)
 }
 
-func (self *Gitea) modifyIssue(inum string, ie issue.Edited) error {
-	if err := self.updatePostIssue(inum, &ie); err != nil {
+func (self *Gitea) modifyIssue(inum string, ise iIssueE) error {
+	if err := self.updatePostIssue(inum, &ise); err != nil {
 		return err
 	}
 	return nil
@@ -294,7 +311,7 @@ func (self *Gitea) toggleIssueState(inum string, state string) error {
 
 	old := is.Update
 	is.State = state
-	eis := ConvIssueEdited(is)
+	eis := iIssue2iIssueE(is)
 	if err := self.updatePostIssue(inum, &eis); err != nil {
 		return err
 	}
@@ -307,12 +324,12 @@ func (self *Gitea) toggleIssueState(inum string, state string) error {
 	return nil
 }
 
-func (self *Gitea) postIssue(is *issue.Edited) error {
-	return self.httpReqIssue("POST", "", is)
+func (self *Gitea) postIssue(ise *iIssueE) error {
+	return self.httpReqIssue("POST", "", ise)
 }
 
-func (self *Gitea) updatePostIssue(inum string, is *issue.Edited) error {
-	return self.httpReqIssue("PATCH", inum, is)
+func (self *Gitea) updatePostIssue(inum string, ise *iIssueE) error {
+	return self.httpReqIssue("PATCH", inum, ise)
 }
 
 func (self *Gitea) httpReqComment(method string , inum string, body string) error {
@@ -331,11 +348,11 @@ func (self *Gitea) httpReqComment(method string , inum string, body string) erro
 	return nil
 }
 
-func (self *Gitea) httpReqIssue(method string , inum string, is *issue.Edited) error {
+func (self *Gitea) httpReqIssue(method string , inum string, ise *iIssueE) error {
 	url := self.url + "api/v1/repos/" + self.repository + "/issues/" + inum
 
-	is.Update = time.Now()
-	ijson, err := json.Marshal(*is)
+	ise.Update = time.Now()
+	ijson, err := json.Marshal(*ise)
 	if err != nil {
 		return err
 	}
@@ -348,10 +365,10 @@ func (self *Gitea) httpReqIssue(method string , inum string, is *issue.Edited) e
 		return nil
 	}
 
-	if err := json.Unmarshal(iret, &is); err != nil {
+	if err := json.Unmarshal(iret, &ise); err != nil {
 		return err
 	}
-	fmt.Printf("issue posted : #%v\n",is.Num)
+	fmt.Printf("issue posted : #%v\n",ise.Num)
 	return nil
 }
 
@@ -496,8 +513,106 @@ type JsonToken struct {
 	Sha1 string `json:"sha1"`
 }
 */
-func ConvIssueEdited(is issue.Body) issue.Edited {
-	var nis issue.Edited
+func iIssue2Issue(is iIssue) issue.Body {
+	var nis issue.Body
+
+	nis.Id = is.Id
+	nis.Num = is.Num
+	nis.Title = is.Title
+	nis.Body = is.Body
+	nis.Url = is.Url
+	nis.State = is.State
+//	nis.Label = iILabel2IssueLabel(is.Label)
+	nis.Milestone = iIMilestone2IssueMilestone(is.Milestone)
+	nis.Update = is.Update
+	nis.User = iIUser2IssueUser(is.User)
+	nis.Assgin = is.Assgin
+
+	return nis
+}
+
+func iIUser2IssueUser(user iIUser) issue.User {
+	var nuser issue.User
+
+	nuser.Id = user.Id
+	nuser.Name = user.Name
+	nuser.Email = user.Email
+	return nuser
+}
+
+func iILabel2IssueLabel(label iILabel) issue.Label {
+	var nlabel issue.Label
+
+	nlabel.Id = label.Id
+	nlabel.Name = label.Name
+//	nlabel.Color = label.Color
+	return nlabel
+}
+
+func iIMilestone2IssueMilestone(mi iIMilestone) issue.Milestone {
+	var nmi issue.Milestone
+
+	nmi.Id = mi.Id
+	nmi.Title = mi.Title
+	return nmi
+}
+
+func iIComment2IssueComment(com iIComment) issue.Comment {
+	var ncom issue.Comment
+
+	ncom.Id = com.Id
+	ncom.Body = com.Body
+	ncom.Update = com.Update
+	ncom.User = iIUser2IssueUser(com.User)
+	return ncom
+}
+
+func Issue2iIssue(is issue.Body) iIssue {
+	var nis iIssue
+
+	nis.Id = is.Id
+	nis.Num = is.Num
+	nis.Title = is.Title
+	nis.Body = is.Body
+	nis.Url = is.Url
+	nis.State = is.State
+//	nis.Label = IssueLabel2iILabel(is.Label)
+	nis.Milestone = IssueMilestone2iIMilestone(is.Milestone)
+	nis.Update = is.Update
+	nis.User = IssueUser2iIUser(is.User)
+	nis.Assgin = is.Assgin
+
+	return nis
+}
+
+func IssueUser2iIUser(user issue.User) iIUser {
+	var nuser iIUser
+
+	nuser.Id = user.Id
+	nuser.Name = user.Name
+	nuser.Email = user.Email
+	return nuser
+}
+
+func IssueLabel2iILabel(label issue.Label) iILabel {
+	var nlabel iILabel
+
+	nlabel.Id = label.Id
+	nlabel.Name = label.Name
+//	nlabel.Color = label.Color
+	return nlabel
+}
+
+func IssueMilestone2iIMilestone(mi issue.Milestone) iIMilestone {
+	var nmi iIMilestone
+
+	nmi.Id = mi.Id
+	nmi.Title = mi.Title
+	return nmi
+}
+
+func iIssue2iIssueE(is iIssue) iIssueE {
+	var nis iIssueE
 
 	nis.Id = is.Id
 	nis.Num = is.Num
@@ -505,7 +620,5 @@ func ConvIssueEdited(is issue.Body) issue.Edited {
 	nis.Body = is.Body
 	nis.State = is.State
 	nis.User  = is.User
-//	nissue.Assgin = issue.Assgin
-
 	return nis
 }
