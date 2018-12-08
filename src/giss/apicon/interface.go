@@ -7,10 +7,10 @@ import (
 	"bufio"
 	"errors"
 	"strings"
-	//"giss/cache"
 	"giss/conf"
 	"giss/apicon/issue"
 	"giss/apicon/gitea"
+	"giss/apicon/github"
 	"github.com/hinoshiba/go-editor/editor"
 )
 
@@ -43,18 +43,18 @@ func NewApicon(rc conf.Conf, alias string) (Apicon, error) {
 			var obj gitea.Gitea
 			Conf = rc
 			ret = &obj
-			return ret, nil
-			/*
 		case "Github":
-			var github Github
+			var obj github.Github
 			Conf = rc
-			ret = &github
-			return ret, nil
-			*/
+			ret = &obj
 	}
+	if ret == nil {
+		err := errors.New(fmt.Sprintf("selected unknown api type : %s",alias))
+		return ret, err
+	}
+	return ret, nil
 
-	err := errors.New(fmt.Sprintf("selected unknown api type : %s",alias))
-	return ret, err
+
 }
 
 func makeWithin80c(inithead bool, hs int, str string) string {
