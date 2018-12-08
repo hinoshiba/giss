@@ -39,7 +39,7 @@ type iIssue struct {
 	Milestone iIMilestone `json:"milestone"`
 	Update time.Time  `json:"updated_at"`
 	User   iIUser `json:"user"`
-	Assgin string     `json:"assignee"`
+	Assginees []iIAssgin `json:"assignees"`
 }
 
 type iIComment struct {
@@ -57,13 +57,18 @@ type iILabel struct {
 
 type iIUser struct {
 	Id    int64  `json:"id"`
-	Name string  `json:"username"`
+	Name string  `json:"login"`
 	Email string `json:"email"`
 }
 
 type iIMilestone struct {
 	Id     int64  `json:"id"`
 	Title  string `json:"title"`
+}
+
+type iIAssgin struct {
+	Id	int64
+	Login	string
 }
 
 func (self *Github) GetUrl() string {
@@ -418,7 +423,7 @@ func iIssue2Issue(is iIssue) issue.Body {
 	nis.Milestone = iIMilestone2IssueMilestone(is.Milestone)
 	nis.Update = is.Update
 	nis.User = iIUser2IssueUser(is.User)
-	nis.Assgin = is.Assgin
+	nis.Assginees = iIAssignees2IssueAssgin(is.Assginees)
 
 	return nis
 }
@@ -459,6 +464,18 @@ func iIComment2IssueComment(com iIComment) issue.Comment {
 	return ncom
 }
 
+func iIAssignees2IssueAssgin(ass []iIAssgin) []issue.Assgin {
+	var nass []issue.Assgin
+
+	for _, v := range ass {
+		var nas issue.Assgin
+		nas.Id = v.Id
+		nas.Login = v.Login
+		nass = append(nass, nas)
+	}
+	return nass
+}
+
 func Issue2iIssue(is issue.Body) iIssue {
 	var nis iIssue
 
@@ -472,7 +489,7 @@ func Issue2iIssue(is issue.Body) iIssue {
 	nis.Milestone = IssueMilestone2iIMilestone(is.Milestone)
 	nis.Update = is.Update
 	nis.User = IssueUser2iIUser(is.User)
-	nis.Assgin = is.Assgin
+	nis.Assginees = IssueAssignees2iIAssignees(is.Assginees)
 
 	return nis
 }
@@ -501,6 +518,18 @@ func IssueMilestone2iIMilestone(mi issue.Milestone) iIMilestone {
 	nmi.Id = mi.Id
 	nmi.Title = mi.Title
 	return nmi
+}
+
+func IssueAssignees2iIAssignees(ass []issue.Assgin) []iIAssgin {
+	var nass []iIAssgin
+
+	for _, v := range ass {
+		var nas iIAssgin
+		nas.Id = v.Id
+		nas.Login = v.Login
+		nass = append(nass, nas)
+	}
+	return nass
 }
 
 func iIssue2iIssueE(is iIssue) iIssueE {

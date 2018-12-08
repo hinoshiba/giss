@@ -15,7 +15,7 @@ type Body struct {
 	Milestone Milestone `json:"milestone"`
 	Update time.Time  `json:"updated_at"`
 	User   User       `json:"user"`
-	Assgin string     `json:"assignee"`
+	Assginees []Assgin   `json:"assignee"`
 }
 
 type Comment struct {
@@ -40,4 +40,9 @@ type User struct {
 type Milestone struct {
 	Id     int64  `json:"id"`
 	Title  string `json:"title"`
+}
+
+type Assgin struct {
+	Id	int64
+	Login	string
 }
