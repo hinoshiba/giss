@@ -1,12 +1,9 @@
 package values
 
-func DebugVersion() {
-	VersionText = VersionText + " Alpha_2018-12-06_01:13"
-}
-
-var VersionText string = "Hinoshiba(c) giss command v0.1.0"
+var Version = "0.1.1"
+var VersionText string = "Hinoshiba(c) giss command v"
+var DevStr string
 var HelpText string = `---------------------------------------------------------
-`+ VersionText + `
 
 how to use : giss <subcommand> ...
 ---------------------------------------------------------
@@ -42,3 +39,10 @@ Whether to create a description is undecided.
 ---------------------------------------------------------
 `
 
+func init() {
+	if DevStr != "" {
+		Version += " " + DevStr
+
+	}
+	VersionText += Version
+}

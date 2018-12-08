@@ -7,7 +7,6 @@ import (
 	"giss/conf"
 	"giss/cache"
 	"giss/apicon"
-	"giss/values"
 )
 
 var PrintAll bool
@@ -145,7 +144,6 @@ func init() {
 	Apicon.SetRepositoryName(ca.Repo)
 	Apicon.SetUrl(ca.Url)
 
-	values.DebugVersion()
 }
 
 func main() {
