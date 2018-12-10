@@ -40,10 +40,10 @@ func (self *Smtp) MakeMail ( header, to []string, sub string, b []byte) error {
 		"Subject: " + encSubject(self.subject) +
 		"Reply-To: " + self.from +
 		"MIME-Version: 1.0\r\n" +
+		"X-Giss-Version: " + values.VersionText + "\r\n" +
 		"Content-Type: text/plain; charset=\"utf-8\"\r\n" +
 		"Content-Transfer-Encoding: base64\r\n" +
 		slice2mlstr(header) + "\r\n" +
-		"X-Giss-Version: " + values.VersionText + "\r\n" +
 		"\r\n" +
 		bb64 )
 	return nil
