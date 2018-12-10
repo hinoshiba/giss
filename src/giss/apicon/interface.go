@@ -25,7 +25,7 @@ type Apicon interface {
 	SetUsername(string)
 	GetToken() string
 	SetToken(string)
-	GetIssue(string) (issue.Body, []issue.Comment, error)
+	GetIssue(string) (issue.Body, error)
 	GetIssues(bool) ([]issue.Body, error)
 	CreateIssue(issue.Body) error
 	ModifyIssue(string, issue.Body) error
@@ -166,19 +166,18 @@ func EditIssue(is *issue.Body, fastedit bool) (bool, error) {
 	return false, nil
 }
 
-func PrintIssue(is issue.Body, comments []issue.Comment) {
-	fmt.Printf(" [#%d] %s ( %s )\n",is.Num, is.Title, is.User.Name)
-	fmt.Printf(" Status   : %s\n", is.State)
-	fmt.Printf(" Updateat : %s\n", is.Update)
-	fmt.Printf("= body =================================================\n")
-	fmt.Printf("%s\n",is.Body)
-	fmt.Printf("= comments =============================================\n")
-	for _, comment := range comments {
-		fmt.Printf(" [#%d] %s ( %s )\n",
-			comment.Id, comment.Update, comment.User.Name)
-		fmt.Printf("------------------------>\n")
-		fmt.Printf("%s\n",comment.Body)
-		fmt.Printf("------------------------------------------------\n")
+func PrintIssue(is issue.Body) {
+	fmt.Printf("# %d : %s \n", is.Num, is.Title)
+	fmt.Printf("## ( %s ) %s %s comments(%d)\n\n",
+		is.State, is.User.Name, is.Update, len(is.Comments))
+	if len(is.Body) > 0 {
+		fmt.Printf("## Body #########################\n\n")
+		fmt.Printf("%s\n\n",is.Body)
+	}
+	for _, com := range is.Comments {
+		fmt.Printf("## Comment #%d %s %s #########################\n\n",
+			com.Id, com.User.Name, com.Update)
+		fmt.Printf("%s\n\n",com.Body)
 	}
 }
 
@@ -187,15 +186,14 @@ func PrintIssues(iss []issue.Body, limit int) {
 		return
 	}
 
+	fmt.Printf("   Id [ Milestone  ] Title\n----------------------------\n")
 	for index, is := range iss {
 		if index >= limit {
 			break
 		}
-		fmt.Printf(" %04d %s %-012s [ %6s / %-010s ] %s\n",
-			is.Num,
-			is.Update.Format("2006/1/2 15:04:05"),
-			is.User.Name,
-			is.State,
+		//fmt.Printf(" #%4d [ %-010s ] %s\n",
+		fmt.Printf(" %4s [ %-10s ] %s\n",
+			fmt.Sprintf("#%d", is.Num),
 			is.Milestone.Title,
 			is.Title,
 		)
@@ -246,11 +244,11 @@ func reportIssue(git Apicon, newtag time.Time, is *issue.Body) (string, error) {
 		ir += makeWithin80c(false,6 ,row)
 	}
 
-	_, coms, err := git.GetIssue(fmt.Sprintf("%v",is.Num))
+	nis, err := git.GetIssue(fmt.Sprintf("%v",is.Num))
 	if err != nil {
 		return "", err
 	}
-	for _, com := range coms {
+	for _, com := range nis.Comments {
 		cr := "    -  "
 		if com.Update.Unix() >= newtag.Unix() {
 		cr = "+   -  "

@@ -182,20 +182,19 @@ func (self *Gitea) getIssues(withclose bool) ([]iIssue, error) {
 	return ret, nil
 }
 
-func (self *Gitea) GetIssue(num string) (issue.Body, []issue.Comment, error) {
+func (self *Gitea) GetIssue(num string) (issue.Body, error) {
 	var is issue.Body
-	var coms []issue.Comment
 
 	i_is, i_icoms, err := self.getIssue(num)
 	if err != nil {
-		return is, coms, err
+		return is, err
 	}
 
 	is = iIssue2Issue(i_is)
 	for _, i_com := range i_icoms {
-		coms = append(coms, iIComment2IssueComment(i_com))
+		is.Comments = append(is.Comments, iIComment2IssueComment(i_com))
 	}
-	return is, coms, nil
+	return is, nil
 }
 
 func (self *Gitea) getIssue(num string) (iIssue, []iIComment, error) {

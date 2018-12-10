@@ -175,7 +175,7 @@ func ComEdit(options []string) error {
 	}
 	inum := options[0]
 
-	issue, _, err := Apicon.GetIssue(inum)
+	issue, err := Apicon.GetIssue(inum)
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func ComShow(options []string) error {
 		return nil
 	}
 
-	issue, comments, err := Apicon.GetIssue(options[0])
+	issue, err := Apicon.GetIssue(options[0])
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func ComShow(options []string) error {
 		return nil
 	}
 
-	apicon.PrintIssue(issue, comments)
+	apicon.PrintIssue(issue)
 	return nil
 }
 

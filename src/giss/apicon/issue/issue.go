@@ -16,6 +16,7 @@ type Body struct {
 	Update time.Time  `json:"updated_at"`
 	User   User       `json:"user"`
 	Assginees []Assgin   `json:"assignee"`
+	Comments  []Comment `json:"comments"`
 }
 
 type Comment struct {
