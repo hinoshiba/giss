@@ -1,3 +1,59 @@
+# Property (設定値)
+## Description (説明)
+
+#[Server.${alias}]
+## This is the alias name for interactively selecting the connection destination.
+## これは、対話的に接続先を選択するためのエイリアス名です。
+
+#URL = "https://gitea.example.com/gitea/"
+## URL of API to connect
+## 接続するAPIのURL
+
+#Type = "Gitea" #Default type Gitea, Github, Redmine //tbc -> Gogs, Gitlab
+## Type of API to connect
+## 接続するAPIのタイプ
+### Gitea, Github, Redmine
+
+#Repos = [ "github/giss", "github/giss02", "github/giss03" ]
+## Repository names to connect
+## 接続するリポジトリ名たち
+
+#AutoLogin = true
+## Automatic cache registration after selecting the connection destination. Basically it is "true" and there is no problem.
+## 接続先選択後の自動キャッシュ登録。基本的にはtrueで問題はありません。
+
+#User = "miladdress@example.com"
+#Token = "YourToken"
+## Username & Token to connect
+## ユーザ名とトークンです
+
+
+## sample done
+
+[Server.gitea]
+URL = "https://gitea.example.com/gitea/"
+Type = "Gitea" #Default type Gitea, Github, Redmine //tbc -> Gogs, Gitlab
+Repos = [ "github/giss" ]
+AutoLogin = true
+User = "miladdress@example.com"
+Token = "YourToken"
+
+[Server.github]
+URL = "https://api.github.com/"
+Type = "Github" #Default type Gitea, Github, Redmine //tbc -> Gogs, Gitlab
+Repos = [ "hinoshiba/giss_test" ]
+AutoLogin = true
+User = "yourmailaddress@example.com"
+Token = "YourToken"
+
+[Giss]
+editor = "vim" #editor to use with giss(gissで使うeditor)
+
+# After that, the config to transmit the weekly report.
+# This function is still a trial version, so if you want to use it, please your think  the parameters
+# 以降は週次レポートを送信するための設定
+# この機能はまだ試験版なので、使いたい場合はパラメータを考えてください。
+
 [Report]
 header = """
 This mail is weekly issues report.
@@ -16,23 +72,3 @@ To = ["yourmailaddress@example.com", "hinoshiba@example.jp"]
 From = "own@example.com"
 Subject = "weekly issues report"
 Header = [""]
-
-[Server.gitea]
-URL = "https://gitea.example.com/gitea/"
-Type = "Gitea" #Default type Gitea, Github, //tbc -> GithubEP, Gogs, Gitlab
-Repos = [ "github/giss" ]
-AutoLogin = true
-User = "miladdress@example.com"
-Token = "YourToken"
-
-[Server.github]
-URL = "https://api.github.com/"
-Type = "Github" #Default type Gitea, Github,//tbc -> GithubEP, Gogs, Gitlab
-Repos = [ "hinoshiba/giss_test" ]
-AutoLogin = true
-User = "yourmailaddress@example.com"
-Token = "YourToken"
-
-
-[Giss]
-editor = "vim"
