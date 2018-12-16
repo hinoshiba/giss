@@ -19,14 +19,10 @@
 
 ## how to setup
 
-1. download at the thisrepository/bin/[YourExecutableFile]
-	* (このリポジトリのbin/あなたの実行形式 をダウンロードしてください)
-2. Create a setting file in ~/.gissrc
-	* (~/.gissrcファイルを作成してください)
-	* please check to : sample/.gissrc
-	* (sample/.gissrc を確認してください)
-3. Type 'giss checkin' and press the Enter key.
-	* [giss checkin]を入力し、実行してください
+1. download at the thisrepository/bin/[YourExecutableFile]  (このリポジトリのbin/あなたの実行形式 をダウンロードしてください)
+2. Create a setting file in ~/.gissrc(~/.gissrcファイルを作成してください)
+	* please check to : sample/.gissrc(sample/.gissrc を確認してください)
+3. Type 'giss checkin' and press the Enter key('giss checkin)を入力し、実行してください
 
 ---
 
