@@ -6,9 +6,14 @@
 ## Supported services(対応中のサービス)
 
 * Github
+	* Type parameter is 'Github'
 * Github Enterprise
+	* Type parameter is 'Github'
 * Gitea
+	* Type parameter is 'Gitea'
 * Redmine
+	* Type parameter is 'Redmine'
+
 
 ---
 
@@ -81,6 +86,14 @@ state updated : closed
 ---
 
 # other
+
+## Redmine
+* The Redmine is transforming expressions.(redmineは表現を変換しています。)
+	* A 'Category' is 'Label'
+	* A 'Tracker' is 'Milestone'
+	* A 'Project' is 'Repository'
+* For each status ('closed' and 'open'), automatically obtain and automatically input the top of the GUI setting.
+* (各ステータス（'closed' と 'open'）については、GUI設定の先頭を自動的に取得して自動的に入力します。)
 
 ## Services you want to respond to...(対応したいサービス)
 
