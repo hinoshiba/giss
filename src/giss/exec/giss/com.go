@@ -162,6 +162,7 @@ func ComComment(options []string) error {
 	}
 	scomment := lf2Esclf(onlyLF(string(comment)))
 	if err := Apicon.AddIssueComment(options[0], scomment); err != nil {
+		fmt.Printf("comment failed.\n%s\n", comment)
 		return err
 	}
 
@@ -179,7 +180,7 @@ func ComEdit(options []string) error {
 	if err != nil {
 		return err
 	}
-	if issue.State == "" {
+	if issue.State.Name == "" {
 		fmt.Printf("undefined ticket: %s\n", inum)
 		return nil
 	}
@@ -188,6 +189,8 @@ func ComEdit(options []string) error {
 		return err
 	}
 	if err := Apicon.ModifyIssue(inum, issue); err != nil {
+		fmt.Printf("update failed\n-------------\n")
+		apicon.PrintIssue(issue)
 		return err
 	}
 	return nil
@@ -201,6 +204,8 @@ func ComCreate() error {
 
 	err := Apicon.CreateIssue(is)
 	if err != nil {
+		fmt.Printf("create failed\n-------------\n")
+		apicon.PrintIssue(is)
 		return err
 	}
 	return nil
@@ -238,7 +243,7 @@ func ComShow(options []string) error {
 	if err != nil {
 		return err
 	}
-	if issue.State == "" {
+	if issue.State.Name == "" {
 		fmt.Printf("undefined ticket: %s\n", options[0])
 		return nil
 	}

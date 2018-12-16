@@ -10,13 +10,18 @@ type Body struct {
 	Title  string     `json:"title"`
 	Body   string     `json:"body"`
 	Url    string     `json:"url"`
-	State  string     `json:"state"`
-//	Labels IssueLabel `json:"labels"`
+	State  State      `json:"state"`
+	Labels  []Label   `json:"labels"`
 	Milestone Milestone `json:"milestone"`
 	Update time.Time  `json:"updated_at"`
 	User   User       `json:"user"`
 	Assginees []Assgin   `json:"assignee"`
 	Comments  []Comment `json:"comments"`
+}
+
+type State struct {
+	Id	int64
+	Name	string
 }
 
 type Comment struct {

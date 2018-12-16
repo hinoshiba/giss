@@ -38,7 +38,7 @@ func (self *Smtp) MakeMail ( header, to []string, sub string, b []byte) error {
 	self.body = []byte(
 		"To: " + slice2str(self.to) + "\r\n" +
 		"Subject: " + encSubject(self.subject) +
-		"Reply-To: " + self.from +
+		"Reply-To: " + self.from + "\r\n" +
 		"MIME-Version: 1.0\r\n" +
 		"X-Giss-Version: " + values.VersionText + "\r\n" +
 		"Content-Type: text/plain; charset=\"utf-8\"\r\n" +

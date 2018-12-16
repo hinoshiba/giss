@@ -524,7 +524,7 @@ func iIssue2Issue(is iIssue) issue.Body {
 	nis.Title = is.Title
 	nis.Body = is.Body
 	nis.Url = is.Url
-	nis.State = is.State
+	nis.State = iState2IssueState(is.State)
 //	nis.Label = iILabel2IssueLabel(is.Label)
 	nis.Milestone = iIMilestone2IssueMilestone(is.Milestone)
 	nis.Update = is.Update
@@ -532,6 +532,12 @@ func iIssue2Issue(is iIssue) issue.Body {
 	nis.Assginees = iIAssignees2IssueAssgin(is.Assginees)
 
 	return nis
+}
+
+func iState2IssueState(istate string) issue.State {
+	var nstate issue.State
+	nstate.Name = istate
+	return nstate
 }
 
 func iIUser2IssueUser(user iIUser) issue.User {
@@ -590,7 +596,7 @@ func Issue2iIssue(is issue.Body) iIssue {
 	nis.Title = is.Title
 	nis.Body = is.Body
 	nis.Url = is.Url
-	nis.State = is.State
+	nis.State = is.State.Name
 //	nis.Label = IssueLabel2iILabel(is.Label)
 	nis.Milestone = IssueMilestone2iIMilestone(is.Milestone)
 	nis.Update = is.Update

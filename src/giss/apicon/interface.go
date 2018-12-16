@@ -11,6 +11,7 @@ import (
 	"giss/apicon/issue"
 	"giss/apicon/gitea"
 	"giss/apicon/github"
+	"giss/apicon/redmine"
 	"github.com/hinoshiba/go-editor/editor"
 )
 
@@ -45,6 +46,10 @@ func NewApicon(rc conf.Conf, alias string) (Apicon, error) {
 			ret = &obj
 		case "Github":
 			var obj github.Github
+			Conf = rc
+			ret = &obj
+		case "Redmine":
+			var obj redmine.Redmine
 			Conf = rc
 			ret = &obj
 	}
@@ -169,7 +174,7 @@ func EditIssue(is *issue.Body, fastedit bool) (bool, error) {
 func PrintIssue(is issue.Body) {
 	fmt.Printf("# %d : %s \n", is.Num, is.Title)
 	fmt.Printf("## ( %s ) %s %s comments(%d)\n\n",
-		is.State, is.User.Name, is.Update, len(is.Comments))
+		is.State.Name, is.User.Name, is.Update, len(is.Comments))
 	if len(is.Body) > 0 {
 		fmt.Printf("## Body #########################\n\n")
 		fmt.Printf("%s\n\n",is.Body)
@@ -213,7 +218,7 @@ func ReportIssues(git Apicon, now time.Time) (map[string]string, error) {
 	newtag := dayAgo(now, -6)
 	limit := dayAgo(now, -14)
 	for _, is := range iss {
-		if is.Update.Unix() < limit.Unix() && is.State == "closed" {
+		if is.Update.Unix() < limit.Unix() && is.State.Name == "closed" {
 			continue
 		}
 
@@ -236,7 +241,7 @@ func reportIssue(git Apicon, newtag time.Time, is *issue.Body) (string, error) {
 	if is.Update.Unix() >= newtag.Unix() {
 		ir = "+ - "
 	}
-	if is.State == "closed" {
+	if is.State.Name == "closed" {
 		ir += "[closed] "
 	}
 	ir += fmt.Sprintf("#%v ",is.Num) + lf2space(onlyLF(is.Title)) + "\n"
