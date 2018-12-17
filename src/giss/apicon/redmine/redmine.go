@@ -182,7 +182,6 @@ func (self *Redmine) getIssues(withclose bool) ([]Ticket, error) {
 		if len(tks.Tk) < 1 {
 			break
 		}
-		p += 1
 		for _, v := range tks.Tk {
 			ret = append(ret, v)
 		}
