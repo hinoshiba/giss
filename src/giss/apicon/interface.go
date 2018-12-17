@@ -29,7 +29,7 @@ type Apicon interface {
 	GetIssue(string) (issue.Body, error)
 	GetIssues(bool) ([]issue.Body, error)
 	CreateIssue(issue.Body) error
-	ModifyIssue(string, issue.Body) error
+	ModifyIssue(issue.Body) error
 	AddIssueComment(string, string) error
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error

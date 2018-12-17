@@ -260,14 +260,14 @@ func (self *Github) addIssueComment(inum string, comment string) error {
 	return nil
 }
 
-func (self *Github) ModifyIssue(inum string, is issue.Body) error {
+func (self *Github) ModifyIssue(is issue.Body) error {
 	i_is := Issue2iIssue(is)
 	i_ise := iIssue2iIssueE(i_is)
-	return self.modifyIssue(inum, i_ise)
+	return self.modifyIssue(i_ise)
 }
 
-func (self *Github) modifyIssue(inum string, ise iIssueE) error {
-	if err := self.updatePostIssue(inum, &ise); err != nil {
+func (self *Github) modifyIssue(ise iIssueE) error {
+	if err := self.updatePostIssue(&ise); err != nil {
 		return err
 	}
 	return nil
@@ -322,7 +322,7 @@ func (self *Github) toggleIssueState(inum string, state string) error {
 	old := is.Update
 	is.State = state
 	eis := iIssue2iIssueE(is)
-	if err := self.updatePostIssue(inum, &eis); err != nil {
+	if err := self.updatePostIssue(&eis); err != nil {
 		return err
 	}
 	if old == is.Update {
@@ -335,11 +335,11 @@ func (self *Github) toggleIssueState(inum string, state string) error {
 }
 
 func (self *Github) postIssue(ise *iIssueE) error {
-	return self.httpReqIssue("POST", "", ise)
+	return self.httpReqIssue("POST", ise)
 }
 
-func (self *Github) updatePostIssue(inum string, ise *iIssueE) error {
-	return self.httpReqIssue("PATCH", inum, ise)
+func (self *Github) updatePostIssue(ise *iIssueE) error {
+	return self.httpReqIssue("PATCH", ise)
 }
 
 func (self *Github) httpReqComment(method string , inum string, body string) error {
@@ -358,12 +358,12 @@ func (self *Github) httpReqComment(method string , inum string, body string) err
 	return nil
 }
 
-func (self *Github) httpReqIssue(method string , inum string, ise *iIssueE) error {
+func (self *Github) httpReqIssue(method string, ise *iIssueE) error {
 	url := self.url + "repos/" + self.repository + "/issues"
 
 	retcode := 201
-	if inum != "" {
-		url += "/" + inum
+	if ise.Num != 0 {
+		url += "/" + fmt.Sprintf("%v", ise.Num)
 		retcode = 200
 	}
 

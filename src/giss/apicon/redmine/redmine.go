@@ -246,7 +246,7 @@ func (self *Redmine) addIssueComment(inum string, comment string) error {
 	return nil
 }
 
-func (self *Redmine) ModifyIssue(inum string, is issue.Body) error {
+func (self *Redmine) ModifyIssue(is issue.Body) error {
 	tk := issue2Tikect(is)
 	etk := ticket2TicketE(tk)
 	etk.StatusId = "2"

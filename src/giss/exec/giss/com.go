@@ -188,7 +188,7 @@ func ComEdit(options []string) error {
 	if ok, err := apicon.EditIssue(&issue, false); !ok {
 		return err
 	}
-	if err := Apicon.ModifyIssue(inum, issue); err != nil {
+	if err := Apicon.ModifyIssue(issue); err != nil {
 		fmt.Printf("update failed\n-------------\n")
 		apicon.PrintIssue(issue)
 		return err
