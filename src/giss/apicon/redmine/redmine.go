@@ -89,7 +89,7 @@ func (self *Redmine) SetRepositoryName(repo string) {
 }
 
 func (self *Redmine) setRepositoryName(repo string) {
-	self.repository = repo
+	self.repository = strings.ToLower(repo)
 }
 
 func (self *Redmine) GetUsername() string {
