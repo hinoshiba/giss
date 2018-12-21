@@ -26,10 +26,10 @@ type Apicon interface {
 	SetUsername(string)
 	GetToken() string
 	SetToken(string)
-	GetIssue(string) (issue.Body, error)
-	GetIssues(bool) ([]issue.Body, error)
-	CreateIssue(issue.Body) error
-	ModifyIssue(issue.Body) error
+	GetIssue(string) (issue.Issue, error)
+	GetIssues(bool, bool) ([]issue.Issue, error)
+	CreateIssue(issue.Issue) error
+	ModifyIssue(issue.Issue) error
 	AddIssueComment(string, string) error
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error
@@ -121,7 +121,7 @@ func  inputString(menu string) (string, error) {
 	return iline, nil
 }
 
-func EditIssue(is *issue.Body, fastedit bool) (bool, error) {
+func EditIssue(is *issue.Issue, fastedit bool) (bool, error) {
 	if fastedit {
 		b, err := editor.Call(Conf.Giss.Editor, []byte(is.Title))
 		if err != nil {
@@ -171,22 +171,7 @@ func EditIssue(is *issue.Body, fastedit bool) (bool, error) {
 	return false, nil
 }
 
-func PrintIssue(is issue.Body) {
-	fmt.Printf("# %d : %s \n", is.Num, is.Title)
-	fmt.Printf("## ( %s ) %s %s comments(%d)\n\n",
-		is.State.Name, is.User.Name, is.Update, len(is.Comments))
-	if len(is.Body) > 0 {
-		fmt.Printf("## Body #########################\n\n")
-		fmt.Printf("%s\n\n",is.Body)
-	}
-	for _, com := range is.Comments {
-		fmt.Printf("## Comment #%d %s %s #########################\n\n",
-			com.Id, com.User.Name, com.Update)
-		fmt.Printf("%s\n\n",com.Body)
-	}
-}
-
-func PrintIssues(iss []issue.Body, limit int) {
+func PrintIssues(iss []issue.Issue, limit int) {
 	if len(iss) < 1 {
 		return
 	}
@@ -196,17 +181,12 @@ func PrintIssues(iss []issue.Body, limit int) {
 		if index >= limit {
 			break
 		}
-		//fmt.Printf(" #%4d [ %-010s ] %s\n",
-		fmt.Printf(" %4s [ %-10s ] %s\n",
-			fmt.Sprintf("#%d", is.Num),
-			is.Milestone.Title,
-			is.Title,
-		)
+		is.PrintHead()
 	}
 }
 
 func ReportIssues(git Apicon, now time.Time) (map[string]string, error) {
-	iss, err := git.GetIssues(true)
+	iss, err := git.GetIssues(false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +216,7 @@ func ReportIssues(git Apicon, now time.Time) (map[string]string, error) {
 	return ret, nil
 }
 
-func reportIssue(git Apicon, newtag time.Time, is *issue.Body) (string, error) {
+func reportIssue(git Apicon, newtag time.Time, is *issue.Issue) (string, error) {
 	ir := "  - "
 	if is.Update.Unix() >= newtag.Unix() {
 		ir = "+ - "

@@ -190,14 +190,14 @@ func ComEdit(options []string) error {
 	}
 	if err := Apicon.ModifyIssue(issue); err != nil {
 		fmt.Printf("update failed\n-------------\n")
-		apicon.PrintIssue(issue)
+		issue.PrintMd()
 		return err
 	}
 	return nil
 }
 
 func ComCreate() error {
-	var is issue.Body
+	var is issue.Issue
 	if ok, err := apicon.EditIssue(&is, true); !ok {
 		return err
 	}
@@ -205,7 +205,7 @@ func ComCreate() error {
 	err := Apicon.CreateIssue(is)
 	if err != nil {
 		fmt.Printf("create failed\n-------------\n")
-		apicon.PrintIssue(is)
+		is.PrintMd()
 		return err
 	}
 	return nil
@@ -248,12 +248,12 @@ func ComShow(options []string) error {
 		return nil
 	}
 
-	apicon.PrintIssue(issue)
+	issue.PrintMd()
 	return nil
 }
 
 func ComLs() error {
-	issues, err := Apicon.GetIssues(PrintAll)
+	issues, err := Apicon.GetIssues(false, PrintAll)
 	if err != nil {
 		return err
 	}
@@ -261,9 +261,44 @@ func ComLs() error {
 		return nil
 	}
 	apicon.PrintIssues(issues, LineLimit)
-	//if err := Apicon.PrintIssues(LineLimit, PrintAll); err != nil {
-	//	return nil
-	//}
+	return nil
+}
+
+func ComExport(options []string) error {
+	if len(options) < 1 {
+		fmt.Printf("can't detect export type\n")
+		return nil
+	}
+
+	if options[0] == "" {
+		fmt.Printf("unknown export type : %s\n", options[0])
+		return nil
+	}
+	if options[0] != "json" && options[0] != "xml" {
+		fmt.Printf("unknown export type : %s\n", options[0])
+		return nil
+	}
+
+	issues, err := Apicon.GetIssues(true, PrintAll)
+	if err != nil {
+		return err
+	}
+	if len(issues) < 1 {
+		return nil
+	}
+
+	switch(options[0]) {
+	case "json" :
+		issue.ExportJson(&issues)
+		break
+	case "xml" :
+		issue.ExportXml(&issues)
+		break
+	default:
+		fmt.Printf("unknown export type : %s\n", options[0])
+		return nil
+	}
+
 	return nil
 }
 

@@ -132,10 +132,10 @@ func (self *Redmine) isLogined() bool {
 	return true
 }
 
-func (self *Redmine) GetIssues(withclose bool) ([]issue.Body, error) {
-	var iss []issue.Body
+func (self *Redmine) GetIssues(com bool, withclose bool) ([]issue.Issue, error) {
+	var iss []issue.Issue
 
-	tks, err := self.getIssues(withclose)
+	tks, err := self.getIssues(com, withclose)
 	if err != nil {
 		return iss, err
 	}
@@ -146,7 +146,7 @@ func (self *Redmine) GetIssues(withclose bool) ([]issue.Body, error) {
 	return iss, nil
 }
 
-func (self *Redmine) getIssues(withclose bool) ([]Ticket, error) {
+func (self *Redmine) getIssues(com, withclose bool) ([]Ticket, error) {
 	url := self.url + "/projects/" + self.repository +
 				"/issues.xml?include=attachments,journals"
 	if withclose {
@@ -183,14 +183,21 @@ func (self *Redmine) getIssues(withclose bool) ([]Ticket, error) {
 			break
 		}
 		for _, v := range tks.Tk {
+			if com {
+				var err error
+				v, err = self.getIssue(fmt.Sprintf("%v", v.Id))
+				if err != nil {
+					return nil, err
+				}
+			}
 			ret = append(ret, v)
 		}
 	}
 	return ret, nil
 }
 
-func (self *Redmine) GetIssue(num string) (issue.Body, error) {
-	var is issue.Body
+func (self *Redmine) GetIssue(num string) (issue.Issue, error) {
+	var is issue.Issue
 
 	i_tk, err := self.getIssue(num)
 	if err != nil {
@@ -221,7 +228,7 @@ func (self *Redmine) getIssue(num string) (Ticket, error) {
 	return tk, nil
 }
 
-func (self *Redmine) CreateIssue(is issue.Body) error {
+func (self *Redmine) CreateIssue(is issue.Issue) error {
 	tk := issue2Tikect(is)
 	etk := ticket2TicketE(tk)
 	return self.createIssue(etk)
@@ -246,7 +253,7 @@ func (self *Redmine) addIssueComment(inum string, comment string) error {
 	return nil
 }
 
-func (self *Redmine) ModifyIssue(is issue.Body) error {
+func (self *Redmine) ModifyIssue(is issue.Issue) error {
 	tk := issue2Tikect(is)
 	etk := ticket2TicketE(tk)
 	etk.StatusId = "2"
@@ -460,8 +467,8 @@ func (self *Redmine) reqHttp(method, url string, param []byte ) ([]byte,
 	return bytes, resp.StatusCode, nil
 }
 
-func ticket2Issue(tk Ticket) issue.Body {
-	var nis issue.Body
+func ticket2Issue(tk Ticket) issue.Issue {
+	var nis issue.Issue
 
 	nis.Id = tk.Id
 	nis.Num = tk.Id
@@ -535,7 +542,7 @@ func tComment2IssueComment(com tComment) issue.Comment {
 	return ncom
 }
 
-func issue2Tikect(is issue.Body) Ticket {
+func issue2Tikect(is issue.Issue) Ticket {
 	var ntk Ticket
 
 	ntk.Id = is.Id

@@ -135,10 +135,10 @@ func (self *Github) isLogined() bool {
 	return true
 }
 
-func (self *Github) GetIssues(withclose bool) ([]issue.Body, error) {
-	var iss []issue.Body
+func (self *Github) GetIssues(com bool, withclose bool) ([]issue.Issue, error) {
+	var iss []issue.Issue
 
-	i_iss, err := self.getIssues(withclose)
+	i_iss, err := self.getIssues(com, withclose)
 	if err != nil {
 		return iss, err
 	}
@@ -149,7 +149,7 @@ func (self *Github) GetIssues(withclose bool) ([]issue.Body, error) {
 	return iss, nil
 }
 
-func (self *Github) getIssues(withclose bool) ([]iIssue, error) {
+func (self *Github) getIssues(com bool, withclose bool) ([]iIssue, error) {
 	url := self.url + "repos/" + self.repository + "/issues?"
 	if withclose {
 		url = url + "&state=all"
@@ -177,6 +177,13 @@ func (self *Github) getIssues(withclose bool) ([]iIssue, error) {
 		}
 		p += 1
 		for _, v := range iss {
+			if com {
+				var err error
+				v, _,  err = self.getIssue(fmt.Sprintf("%v", v.Num))
+				if err != nil {
+					return ret, err
+				}
+			}
 			v.Update = v.Update.In(local)
 			ret = append(ret, v)
 		}
@@ -184,8 +191,8 @@ func (self *Github) getIssues(withclose bool) ([]iIssue, error) {
 	return ret, nil
 }
 
-func (self *Github) GetIssue(num string) (issue.Body, error) {
-	var is issue.Body
+func (self *Github) GetIssue(num string) (issue.Issue, error) {
+	var is issue.Issue
 
 	i_is, i_icoms, err := self.getIssue(num)
 	if err != nil {
@@ -236,7 +243,7 @@ func (self *Github) getIssue(num string) (iIssue, []iIComment, error) {
 	return is, comments, nil
 }
 
-func (self *Github) CreateIssue(is issue.Body) error {
+func (self *Github) CreateIssue(is issue.Issue) error {
 	i_is := Issue2iIssue(is)
 	i_ise := iIssue2iIssueE(i_is)
 	return self.createIssue(i_ise)
@@ -260,7 +267,7 @@ func (self *Github) addIssueComment(inum string, comment string) error {
 	return nil
 }
 
-func (self *Github) ModifyIssue(is issue.Body) error {
+func (self *Github) ModifyIssue(is issue.Issue) error {
 	i_is := Issue2iIssue(is)
 	i_ise := iIssue2iIssueE(i_is)
 	return self.modifyIssue(i_ise)
@@ -416,8 +423,8 @@ func (self *Github) reqHttp(method, url string, param []byte ) ([]byte,
 	return bytes, resp.StatusCode, nil
 }
 
-func iIssue2Issue(is iIssue) issue.Body {
-	var nis issue.Body
+func iIssue2Issue(is iIssue) issue.Issue {
+	var nis issue.Issue
 
 	nis.Id = is.Id
 	nis.Num = is.Num
@@ -488,7 +495,7 @@ func iIAssignees2IssueAssgin(ass []iIAssgin) []issue.Assgin {
 	return nass
 }
 
-func Issue2iIssue(is issue.Body) iIssue {
+func Issue2iIssue(is issue.Issue) iIssue {
 	var nis iIssue
 
 	nis.Id = is.Id

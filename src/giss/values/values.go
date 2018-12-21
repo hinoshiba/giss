@@ -1,6 +1,6 @@
 package values
 
-var Version = "0.1.2"
+var Version = "0.1.3"
 var VersionText string = "Hinoshiba(c) giss command v"
 var DevStr string
 var HelpText string = `---------------------------------------------------------
@@ -26,8 +26,13 @@ Issues operation
  					-l <limit> : Specify the maximum display line number. By default, 20 lines.
 					-a         : Also displays closed issues. By default, only open is displayed.
  show      <issues No>		Display the specified issues detail at the iss,
+ export [-a] <type>		(alpha Function) export all of the issues at stdout.
+					-a         : with export the closed issues.
+					<type>     : json, xml.
+
 
 Advance operation
+
  repo				(beta Function) A mail is automatically generated in which addresses, headers, etc. are automatically inserted.
  				Must be set in advance in "~/.gissrc ".
 ---------------------------------------------------------
@@ -41,8 +46,8 @@ Whether to create a description is undecided.
 
 func init() {
 	if DevStr != "" {
-		Version += " " + DevStr
-
+		Version += "." + DevStr
 	}
+
 	VersionText += Version
 }
