@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"encoding/xml"
 	"encoding/json"
+	"encoding/hex"
+	"github.com/aybabtme/rgbterm"
 )
 
 type Issue struct {
@@ -144,11 +146,35 @@ func (self *Issue) PrintMd() error {
 	return nil
 }
 
+func (self *Issue) getLabelsStr() (string, error) {
+	var ret string
+	for _, v := range self.Labels {
+		c, err := hex.DecodeString(v.Color)
+		if err != nil {
+			return "", err
+		}
+		if len(c) < 3 {
+			c = []uint8{255,255,255}
+		}
+		l := rgbterm.String(v.Name,
+			uint8(-c[0]), uint8(-c[1]), uint8(-c[2]),
+			uint8(c[0]), uint8(c[1]), uint8(c[2]))
+		ret += " " + l + "\x1b[0m"
+	}
+	return ret, nil
+}
+
 func (self *Issue) PrintHead() error {
-	fmt.Printf(" %4s [ %-10s ] %s\n",
+	labelstr, err := self.getLabelsStr()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(" %4s [ %-10s ] %s %s\n",
 		fmt.Sprintf("#%d", self.Num),
 		self.Milestone.Title,
 		self.Title,
+		labelstr,
 	)
 	return nil
 }

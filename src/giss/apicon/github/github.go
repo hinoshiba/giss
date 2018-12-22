@@ -35,12 +35,12 @@ type iIssue struct {
 	Body      string      `json:"body"`
 	Url       string      `json:"url"`
 	State     string      `json:"state"`
-//	Labels    IssueLabel  `json:"labels"`
+	Labels    []iILabel   `json:"labels, omitempty"`
 	Milestone iIMilestone `json:"milestone"`
 	Update    time.Time   `json:"updated_at"`
 	User      iIUser      `json:"user"`
 	Assginees []iIAssgin  `json:"assignees"`
-	Comments  []iIComment `json:"-"`
+	Comments  []iIComment `json:"com, omitempty"`
 }
 
 type iIComment struct {
@@ -434,7 +434,6 @@ func iIssue2Issue(is iIssue) issue.Issue {
 	nis.Body = is.Body
 	nis.Url = is.Url
 	nis.State = iState2IssueState(is.State)
-//	nis.Label = iILabel2IssueLabel(is.Label)
 	nis.Milestone = iIMilestone2IssueMilestone(is.Milestone)
 	nis.Update = is.Update
 	nis.User = iIUser2IssueUser(is.User)
@@ -442,6 +441,9 @@ func iIssue2Issue(is iIssue) issue.Issue {
 
 	for _, com := range is.Comments {
 		nis.Comments = append(nis.Comments, iIComment2IssueComment(com))
+	}
+	for _, label := range is.Labels {
+		nis.Labels = append(nis.Labels, iILabel2IssueLabel(label))
 	}
 
 	return nis
@@ -467,7 +469,7 @@ func iILabel2IssueLabel(label iILabel) issue.Label {
 
 	nlabel.Id = label.Id
 	nlabel.Name = label.Name
-//	nlabel.Color = label.Color
+	nlabel.Color = label.Color
 	return nlabel
 }
 
@@ -510,11 +512,17 @@ func Issue2iIssue(is issue.Issue) iIssue {
 	nis.Body = is.Body
 	nis.Url = is.Url
 	nis.State = is.State.Name
-//	nis.Label = IssueLabel2iILabel(is.Label)
 	nis.Milestone = IssueMilestone2iIMilestone(is.Milestone)
 	nis.Update = is.Update
 	nis.User = IssueUser2iIUser(is.User)
 	nis.Assginees = IssueAssignees2iIAssignees(is.Assginees)
+
+	for _, label := range is.Labels {
+		nis.Labels = append(nis.Labels, IssueLabel2iILabel(label))
+	}
+	for _, com := range is.Comments {
+		nis.Comments = append(nis.Comments, IssueComment2iIComment(com))
+	}
 
 	return nis
 }
@@ -533,7 +541,7 @@ func IssueLabel2iILabel(label issue.Label) iILabel {
 
 	nlabel.Id = label.Id
 	nlabel.Name = label.Name
-//	nlabel.Color = label.Color
+	nlabel.Color = label.Color
 	return nlabel
 }
 
@@ -555,6 +563,16 @@ func IssueAssignees2iIAssignees(ass []issue.Assgin) []iIAssgin {
 		nass = append(nass, nas)
 	}
 	return nass
+}
+
+func IssueComment2iIComment(com issue.Comment) iIComment {
+	var ncom iIComment
+
+	ncom.Id = com.Id
+	ncom.Body = com.Body
+	ncom.Update = com.Update
+	ncom.User = IssueUser2iIUser(com.User)
+	return ncom
 }
 
 func iIssue2iIssueE(is iIssue) iIssueE {
