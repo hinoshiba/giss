@@ -24,22 +24,23 @@ type iIssueE struct {
 	Title  string     `json:"title"`
 	Body   string     `json:"body"`
 	State  string     `json:"state"`
-	User   iIUser  `json:"user"`
+	User   iIUser     `json:"user"`
 	Update time.Time  `json:"updated_at"`
 }
 
 type iIssue struct {
-	Id     int64      `json:"id"`
-	Num    int64      `json:"number"`
-	Title  string     `json:"title"`
-	Body   string     `json:"body"`
-	Url    string     `json:"url"`
-	State  string     `json:"state"`
-//	Labels IssueLabel `json:"labels"`
-	Milestone iIMilestone `json:"milestone"`
-	Update time.Time  `json:"updated_at"`
-	User   iIUser `json:"user"`
-	Assginees []iIAssgin `json:"assignees"`
+	Id        int64        `json:"id"`
+	Num       int64        `json:"number"`
+	Title     string       `json:"title"`
+	Body      string       `json:"body"`
+	Url       string       `json:"url"`
+	State     string       `json:"state"`
+//	Labels    IssueLabel   `json:"labels"`
+	Milestone iIMilestone  `json:"milestone"`
+	Update    time.Time    `json:"updated_at"`
+	User      iIUser       `json:"user"`
+	Assginees []iIAssgin   `json:"assignees"`
+	Comments  []iIComment  `json:"-"`
 }
 
 type iIComment struct {
@@ -178,7 +179,7 @@ func (self *Gitea) getIssues(com bool, withclose bool) ([]iIssue, error) {
 		for _, v := range iss {
 			if com {
 				var err error
-				v, _,  err = self.getIssue(fmt.Sprintf("%v", v.Num))
+				v, err = self.getIssue(fmt.Sprintf("%v", v.Num))
 				if err != nil {
 					return ret, err
 				}
@@ -192,48 +193,51 @@ func (self *Gitea) getIssues(com bool, withclose bool) ([]iIssue, error) {
 func (self *Gitea) GetIssue(num string) (issue.Issue, error) {
 	var is issue.Issue
 
-	i_is, i_icoms, err := self.getIssue(num)
+	i_is, err := self.getIssue(num)
 	if err != nil {
 		return is, err
 	}
 
 	is = iIssue2Issue(i_is)
-	for _, i_com := range i_icoms {
-		is.Comments = append(is.Comments, iIComment2IssueComment(i_com))
-	}
+
 	return is, nil
 }
 
-func (self *Gitea) getIssue(num string) (iIssue, []iIComment, error) {
+func (self *Gitea) getIssue(num string) (iIssue, error) {
 	var is iIssue
-	var comments []iIComment
+
 	iurl := self.url + "api/v1/repos/" + self.repository + "/issues/" + num
 	curl := iurl + "/comments"
 
 	iret, rcode, err := self.reqHttp("GET", iurl, nil)
 	if err != nil {
-		return is, comments, err
+		return is, err
 	}
 	if rcode != 200 {
 		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return is, comments, nil
+		return is, nil
 	}
 	cret, rcode, err := self.reqHttp("GET", curl, nil)
 	if err != nil {
-		return is, comments, err
+		return is, err
 	}
 	if rcode != 200 {
 		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return is, comments, nil
+		return is, nil
 	}
 
 	if err := json.Unmarshal(iret, &is); err != nil {
-		return is, comments, err
+		return is, err
 	}
-	if err := json.Unmarshal(cret, &comments); err != nil {
-		return is, comments, err
+
+	var coms []iIComment
+	if err := json.Unmarshal(cret, &coms); err != nil {
+		return is, err
 	}
-	return is, comments, nil
+	for _, com := range coms {
+		is.Comments = append(is.Comments, com)
+	}
+	return is, nil
 }
 
 func (self *Gitea) CreateIssue(is issue.Issue) error {
@@ -306,7 +310,7 @@ func (self *Gitea) toggleIssueState(inum string, state string) error {
 		fmt.Printf("unknown state :%s\n", state)
 		return nil
 	}
-	is, _, err := self.getIssue(inum)
+	is, err := self.getIssue(inum)
 	if err != nil {
 		return err
 	}
@@ -540,6 +544,10 @@ func iIssue2Issue(is iIssue) issue.Issue {
 	nis.Update = is.Update
 	nis.User = iIUser2IssueUser(is.User)
 	nis.Assginees = iIAssignees2IssueAssgin(is.Assginees)
+
+	for _, com := range is.Comments {
+		nis.Comments = append(nis.Comments, iIComment2IssueComment(com))
+	}
 
 	return nis
 }
