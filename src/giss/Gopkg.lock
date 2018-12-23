@@ -11,6 +11,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:f8c5815a76aec3fac7f6d67911eccd3a93841294052b0e81bca1ff325a1ee62d"
+  name = "github.com/aybabtme/rgbterm"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "cc83f3b3ce5911279513a46d6d3316d67bedaa54"
+
+[[projects]]
+  branch = "master"
   digest = "1:426ae380340663af02333b9054cf2a7dfe72ee39aee84c2b300b7959694523f2"
   name = "github.com/hinoshiba/go-editor"
   packages = ["editor"]
@@ -22,6 +30,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/BurntSushi/toml",
+    "github.com/aybabtme/rgbterm",
     "github.com/hinoshiba/go-editor/editor",
   ]
   solver-name = "gps-cdcl"
