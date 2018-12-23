@@ -34,6 +34,11 @@ type Apicon interface {
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error
 	IsLogined() bool
+	//GetMilestones() []string
+	//ModMilestones(string)
+	GetLabels() ([]issue.Label, error)
+	AddLabel(string, string) error
+	DelLabel(string, string) error
 }
 
 func NewApicon(rc conf.Conf, alias string) (Apicon, error) {

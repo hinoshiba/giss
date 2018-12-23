@@ -11,6 +11,20 @@ import (
 	"giss/apicon/issue"
 )
 
+func (self *Github) GetLabels() ([]issue.Label, error) {
+	var ret []issue.Label
+	return ret, nil
+}
+
+func (self *Github) AddLabel(inum string, lb string) error {
+	return nil
+}
+
+func (self *Github) DelLabel(inum string, lb string) error {
+	return nil
+}
+
+
 type Github struct {
 	url string
 	repository string

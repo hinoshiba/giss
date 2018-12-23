@@ -150,19 +150,32 @@ func (self *Issue) PrintMd() error {
 	return nil
 }
 
-func (self *Issue) getLabelsStr() (string, error) {
-	var ret string
-	for _, v := range self.Labels {
-		c, err := hex.DecodeString(v.Color)
+func (self *Label) GetLabelStr() (string, error) {
+	return self.getLabelStr()
+}
+
+func (self *Label) getLabelStr() (string, error) {
+		c, err := hex.DecodeString(self.Color)
 		if err != nil {
 			return "", err
 		}
 		if len(c) < 3 {
 			c = []uint8{255,255,255}
 		}
-		l := rgbterm.String(v.Name,
+		l := rgbterm.String(self.Name,
 			uint8(-c[0]), uint8(-c[1]), uint8(-c[2]),
 			uint8(c[0]), uint8(c[1]), uint8(c[2]))
+		return l, nil
+}
+
+func (self *Issue) getLabelsStr() (string, error) {
+	var ret string
+	for _, lb := range self.Labels {
+		l, err := lb.getLabelStr()
+		if err != nil {
+			return "", err
+		}
+
 		ret += " " + l + "\x1b[0m"
 	}
 	return ret, nil

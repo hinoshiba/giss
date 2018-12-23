@@ -196,6 +196,44 @@ func ComEdit(options []string) error {
 	return nil
 }
 
+func ComLbAdd(args []string) error {
+	if len(args) < 2 {
+		fmt.Printf("giss ls <issue number> <label name>\n")
+		return nil
+	}
+	if err := Apicon.AddLabel(args[0], args[1]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ComLbDel(args []string) error {
+	if len(args) < 2 {
+		fmt.Printf("giss ls <issue number> <label name>\n")
+		return nil
+	}
+	if err := Apicon.DelLabel(args[0], args[1]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ComLbLs() error {
+	lbs, err := Apicon.GetLabels()
+	if err != nil {
+		return err
+	}
+
+	for _, lb := range lbs {
+		lstr, err := lb.GetLabelStr()
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s\n", lstr)
+	}
+	return nil
+}
+
 func ComCreate() error {
 	var is issue.Issue
 	if ok, err := apicon.EditIssue(&is, true); !ok {

@@ -25,6 +25,7 @@ type iIssueE struct {
 	Body   string     `json:"body"`
 	State  string     `json:"state"`
 	User   iIUser     `json:"user"`
+	Labels []iILabel  `json:"labels, omitempty"`
 	Update time.Time  `json:"updated_at"`
 }
 
@@ -277,6 +278,89 @@ func (self *Gitea) modifyIssue(ise iIssueE) error {
 	return nil
 }
 
+
+func (self *Gitea) GetLabels() ([]issue.Label, error) {
+	var rlbs []issue.Label
+
+	lbs, err := self.getLabels("")
+	if err != nil {
+		return rlbs, err
+	}
+
+	for _, lb := range lbs {
+		rlbs = append(rlbs, iILabel2IssueLabel(lb))
+	}
+	return rlbs, nil
+}
+
+func (self *Gitea) getLabels(target string) ([]iILabel, error) {
+	var lbs []iILabel
+	bret, err := self.httpGetLabel()
+	if err != nil {
+		return lbs, err
+	}
+	if err := json.Unmarshal(bret, &lbs); err != nil {
+		return lbs, err
+	}
+
+	if target == "" {
+		return lbs, nil
+	}
+	for _, lb := range lbs {
+		if lb.Name == target {
+			return []iILabel{lb}, nil
+		}
+	}
+	return []iILabel{}, nil
+
+}
+
+func (self *Gitea) AddLabel(inum string, lbname string) error {
+	lbs, err := self.getLabels(lbname)
+	if err != nil {
+		return err
+	}
+	if len(lbs) != 1 {
+		fmt.Printf("undefined choose labelname. : %s\n", lbname)
+		return nil
+	}
+
+	if err := self.addLabel(inum, lbs[0]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *Gitea) addLabel(inum string, lb iILabel) error {
+	if err := self.httpReqLabel("POST", inum, lb); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *Gitea) DelLabel(inum string, lbname string) error {
+	lbs, err := self.getLabels(lbname)
+	if err != nil {
+		return err
+	}
+	if len(lbs) != 1 {
+		fmt.Printf("undefined choose labelname. : %s\n", lbname)
+		return nil
+	}
+
+	if err := self.delLabel(inum, lbs[0]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *Gitea) delLabel(inum string, lb iILabel) error {
+	if err := self.httpReqLabel("DELETE", inum, lb); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (self *Gitea) DoCloseIssue(inum string) error {
 	if !self.isLogined() {
 		return nil
@@ -344,6 +428,42 @@ func (self *Gitea) postIssue(ise *iIssueE) error {
 
 func (self *Gitea) updatePostIssue(ise *iIssueE) error {
 	return self.httpReqIssue("PATCH", ise)
+}
+
+func (self *Gitea) httpGetLabel() ([]byte, error) {
+	url := self.url + "api/v1/repos/" + self.repository + "/labels"
+
+	bret, rcode, err := self.reqHttp("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rcode != 200 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, nil
+	}
+	return bret, nil
+}
+
+func (self *Gitea) httpReqLabel(method string , inum string, lb iILabel) error {
+	url := self.url + "api/v1/repos/" + self.repository +
+						"/issues/" + inum + "/labels"
+	id := fmt.Sprintf("%v", lb.Id)
+	json_str := `{"labels":[`+ id + `]}`
+
+	if method == "DELETE" {
+		url += "/" + id
+		json_str = ""
+	}
+
+	_, rcode, err := self.reqHttp(method, url, []byte(json_str))
+	if err != nil {
+		return err
+	}
+	if rcode != 200 && rcode != 204 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil
+	}
+	return nil
 }
 
 func (self *Gitea) httpReqComment(method string , inum string, body string) error {
