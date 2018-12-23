@@ -129,7 +129,11 @@ func (self *Issue) PrintWiki() error {
 }
 
 func (self *Issue) PrintMd() error {
-	fmt.Printf("# %d : %s \n", self.Num, self.Title)
+	labelstr, err := self.getLabelsStr()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("# %d : %s %s\n", self.Num, self.Title, labelstr)
 	fmt.Printf("## ( %s ) %s %s comments(%d)\n\n",
 		self.State.Name, self.User.Name, self.Update, len(self.Comments))
 	if len(self.Body) > 0 {
