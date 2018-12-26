@@ -19,14 +19,14 @@ type Gitea struct {
 }
 
 type iIssueE struct {
-	Id     int64      `json:"id"`
-	Num    int64      `json:"number"`
-	Title  string     `json:"title"`
-	Body   string     `json:"body"`
-	State  string     `json:"state"`
-	User   iIUser     `json:"user"`
-	Labels []iILabel  `json:"labels, omitempty"`
-	Update time.Time  `json:"updated_at"`
+	Id     int64           `json:"id"`
+	Num    int64           `json:"number"`
+	Title  string          `json:"title"`
+	Body   string          `json:"body"`
+	State  string          `json:"state"`
+	User   iIUser          `json:"user"`
+	Labels []iILabel       `json:"labels, omitempty"`
+	Update time.Time       `json:"updated_at"`
 }
 
 type iIssue struct {
@@ -278,6 +278,76 @@ func (self *Gitea) modifyIssue(ise iIssueE) error {
 	return nil
 }
 
+func (self *Gitea) DeleteMilestone(inum string) error {
+	return self.deleteMilestone(inum)
+}
+
+func (self *Gitea) deleteMilestone(inum string) error {
+
+	ml := iIMilestone{Id:0,Title:""}
+
+	if err := self.httpReqMilestone("PATCH", inum, ml); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (self *Gitea) UpdateMilestone(inum string, mlname string) error {
+	return self.updateMilestone(inum, mlname)
+}
+
+func (self *Gitea) updateMilestone(inum string, mlname string) error {
+	mls, err := self.getMilestones(mlname)
+	if err != nil {
+		return err
+	}
+	if len(mls) < 1 {
+		fmt.Printf("undefined milestonename : %s\n", mlname)
+		return nil
+	}
+
+	if err := self.httpReqMilestone("PATCH", inum, mls[0]); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (self *Gitea) GetMilestones() ([]issue.Milestone, error) {
+	var mls []issue.Milestone
+	imls, err := self.getMilestones("")
+	if err != nil {
+		return mls, nil
+	}
+
+	for _, iml := range imls {
+		mls = append(mls, iIMilestone2IssueMilestone(iml))
+	}
+	return mls, nil
+}
+
+func (self *Gitea) getMilestones(target string) ([]iIMilestone, error) {
+	var mls []iIMilestone
+
+	bret, err := self.httpGetMilestones()
+	if err != nil {
+		return mls, err
+	}
+	if err := json.Unmarshal(bret, &mls); err != nil {
+		return mls, err
+	}
+
+	if target == "" {
+		return mls, nil
+	}
+	for _, ml := range mls {
+		if ml.Title == target {
+			return []iIMilestone{ml}, nil
+		}
+	}
+	return []iIMilestone{}, nil
+}
 
 func (self *Gitea) GetLabels() ([]issue.Label, error) {
 	var rlbs []issue.Label
@@ -430,6 +500,20 @@ func (self *Gitea) updatePostIssue(ise *iIssueE) error {
 	return self.httpReqIssue("PATCH", ise)
 }
 
+func (self *Gitea) httpGetMilestones() ([]byte, error) {
+	url := self.url + "api/v1/repos/" + self.repository + "/milestones"
+
+	bret, rcode, err := self.reqHttp("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rcode != 200 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, nil
+	}
+	return bret, nil
+}
+
 func (self *Gitea) httpGetLabel() ([]byte, error) {
 	url := self.url + "api/v1/repos/" + self.repository + "/labels"
 
@@ -442,6 +526,23 @@ func (self *Gitea) httpGetLabel() ([]byte, error) {
 		return nil, nil
 	}
 	return bret, nil
+}
+
+func (self *Gitea) httpReqMilestone(method string , inum string, ml iIMilestone) error {
+	url := self.url + "api/v1/repos/" + self.repository + "/issues/" + inum
+
+	id := fmt.Sprintf("%v", ml.Id)
+	json_str := `{"milestone":` + id + ` }`
+
+	_, rcode, err := self.reqHttp(method, url, []byte(json_str))
+	if err != nil {
+		return err
+	}
+	if rcode != 201 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil
+	}
+	return nil
 }
 
 func (self *Gitea) httpReqLabel(method string , inum string, lb iILabel) error {
@@ -677,6 +778,7 @@ func iIssue2Issue(is iIssue) issue.Issue {
 
 func iState2IssueState(istate string) issue.State {
 	var nstate issue.State
+
 	nstate.Name = istate
 	return nstate
 }
@@ -810,5 +912,6 @@ func iIssue2iIssueE(is iIssue) iIssueE {
 	nis.Body = is.Body
 	nis.State = is.State
 	nis.User  = is.User
+	//nis.Milestone = is.Milestone.Id
 	return nis
 }

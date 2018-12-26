@@ -34,8 +34,9 @@ type Apicon interface {
 	DoOpenIssue(string) error
 	DoCloseIssue(string) error
 	IsLogined() bool
-	//GetMilestones() []string
-	//ModMilestones(string)
+	GetMilestones() ([]issue.Milestone, error)
+	UpdateMilestone(string, string) error
+	DeleteMilestone(string) error
 	GetLabels() ([]issue.Label, error)
 	AddLabel(string, string) error
 	DelLabel(string, string) error

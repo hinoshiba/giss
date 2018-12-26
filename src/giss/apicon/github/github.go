@@ -11,6 +11,19 @@ import (
 	"giss/apicon/issue"
 )
 
+func (self *Github) DeleteMilestone(inum string) error {
+	return nil
+}
+
+func (self *Github) UpdateMilestone(inum string, mlname string) error {
+	return nil
+}
+
+func (self *Github) GetMilestones() ([]issue.Milestone, error) {
+	var ret []issue.Milestone
+	return ret, nil
+}
+
 func (self *Github) GetLabels() ([]issue.Label, error) {
 	var ret []issue.Label
 	return ret, nil

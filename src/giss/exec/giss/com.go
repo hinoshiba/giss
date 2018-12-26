@@ -198,7 +198,7 @@ func ComEdit(options []string) error {
 
 func ComLbAdd(args []string) error {
 	if len(args) < 2 {
-		fmt.Printf("giss ls <issue number> <label name>\n")
+		fmt.Printf("giss lbadd <issue number> <label name>\n")
 		return nil
 	}
 	if err := Apicon.AddLabel(args[0], args[1]); err != nil {
@@ -209,11 +209,45 @@ func ComLbAdd(args []string) error {
 
 func ComLbDel(args []string) error {
 	if len(args) < 2 {
-		fmt.Printf("giss ls <issue number> <label name>\n")
+		fmt.Printf("giss lbdel <issue number> <label name>\n")
 		return nil
 	}
 	if err := Apicon.DelLabel(args[0], args[1]); err != nil {
 		return err
+	}
+	return nil
+}
+
+func ComMlCh(args []string) error {
+	if len(args) < 2 {
+		fmt.Printf("giss mlch <issue number> <milestone name>\n")
+		return nil
+	}
+	if err := Apicon.UpdateMilestone(args[0], args[1]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ComMlDel(args []string) error {
+	if len(args) < 1 {
+		fmt.Printf("giss mldel <issue number>\n")
+		return nil
+	}
+	if err := Apicon.DeleteMilestone(args[0]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ComMlLs() error {
+	mls, err := Apicon.GetMilestones()
+	if err != nil {
+		return err
+	}
+
+	for _, ml := range mls {
+		fmt.Printf("%s\n", ml.Title)
 	}
 	return nil
 }

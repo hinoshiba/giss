@@ -78,6 +78,21 @@ func giss() error {
 			break
 		}
 		err = ComExport(Options)
+	case "mldel":
+		if !okApiInit() {
+			break
+		}
+		err = ComMlDel(Options)
+	case "mlch":
+		if !okApiInit() {
+			break
+		}
+		err = ComMlCh(Options)
+	case "mlls":
+		if !okApiInit() {
+			break
+		}
+		err = ComMlLs()
 	case "lbls":
 		if !okApiInit() {
 			break

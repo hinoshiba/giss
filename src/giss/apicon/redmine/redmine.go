@@ -11,6 +11,20 @@ import (
 	"giss/apicon/httpcl"
 	"giss/apicon/issue"
 )
+
+func (self *Redmine) DeleteMilestone(inum string) error {
+	return nil
+}
+
+func (self *Redmine) UpdateMilestone(inum string, mlname string) error {
+	return nil
+}
+
+func (self *Redmine) GetMilestones() ([]issue.Milestone, error) {
+	var ret []issue.Milestone
+	return ret, nil
+}
+
 func (self *Redmine) GetLabels() ([]issue.Label, error) {
 	var ret []issue.Label
 	return ret, nil
