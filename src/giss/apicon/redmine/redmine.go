@@ -12,32 +12,6 @@ import (
 	"giss/apicon/issue"
 )
 
-func (self *Redmine) DeleteMilestone(inum string) error {
-	return nil
-}
-
-func (self *Redmine) UpdateMilestone(inum string, mlname string) error {
-	return nil
-}
-
-func (self *Redmine) GetMilestones() ([]issue.Milestone, error) {
-	var ret []issue.Milestone
-	return ret, nil
-}
-
-func (self *Redmine) GetLabels() ([]issue.Label, error) {
-	var ret []issue.Label
-	return ret, nil
-}
-
-func (self *Redmine) AddLabel(inum string, lb string) error {
-	return nil
-}
-
-func (self *Redmine) DelLabel(inum string, lb string) error {
-	return nil
-}
-
 type Redmine struct {
 	url string
 	repository string
@@ -52,7 +26,9 @@ type TicketE struct {
 	Description   string	`xml:"description"`
 	Status        iStatus	`xml:"status"`
 	User          iUser	`xml:"author"`
-	StatusId      string	`xml:"status_id"`
+	StatusId      int64	`xml:"status_id"`
+	TrackerId     int64     `xml:"tracker_id"`
+	CategoryId    int64     `xml:"category_id"`
 }
 
 type Ticket struct {
@@ -90,8 +66,8 @@ type iUser struct {
 }
 
 type iTracker struct {
-	Id	int64	`xml:"id,attr"`
-	Name	string	`xml:"name,attr"`
+	Id	int64	 `xml:"id,attr"`
+	Name	string	 `xml:"name,attr"`
 }
 
 func (self *Redmine) GetUrl() string {
@@ -170,6 +146,181 @@ func (self *Redmine) GetIssues(com bool, withclose bool) ([]issue.Issue, error) 
 		iss = append(iss, ticket2Issue(tk))
 	}
 	return iss, nil
+}
+
+func (self *Redmine) DeleteMilestone(inum string) error {
+	fmt.Printf("can't delete milestone(tracker) at the redmine\n")
+	return nil
+}
+
+func (self *Redmine) UpdateMilestone(inum string, mlname string) error {
+	return self.updateTracker(inum, mlname)
+}
+
+func (self *Redmine) updateTracker(inum string, trname string) error {
+	tk, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	etk := ticket2TicketE(tk)
+
+	trs, err := self.getTrackers(trname)
+	if err != nil {
+		return err
+	}
+	if len(trs) < 1 {
+		fmt.Printf("undefined name : %s\n", trname)
+		return nil
+	}
+	etk.TrackerId = trs[0].Id
+	if err := self.updatePostIssue(&etk); err != nil {
+		return err
+	}
+	fmt.Printf("Update tracker #%s : %s -> %s\n",inum, tk.Tracker.Name, trs[0].Name)
+	return nil
+}
+
+func (self *Redmine) GetMilestones() ([]issue.Milestone, error) {
+	trs, err := self.getTrackers("")
+	if err != nil {
+		return []issue.Milestone{}, err
+	}
+
+	var mls []issue.Milestone
+	for _, tr := range trs {
+		mls = append(mls, tTracker2IssueMilestone(tr))
+	}
+	return mls, nil
+}
+
+func (self *Redmine) getTrackers(target string) ([]iTracker, error) {
+	type Tracker struct {
+		Id    int64     `xml:"id"`
+		Name  string    `xml:"name"`
+	}
+	type Trackers struct {
+		Trs  []Tracker `xml:"tracker"`
+	}
+	var trss Trackers
+
+	bret, err := self.httpReqTrackers()
+	if err != nil {
+		return []iTracker{}, err
+	}
+	if err := xml.Unmarshal(bret, &trss); err != nil {
+		return []iTracker{}, err
+	}
+
+	var trs []iTracker
+	if target == "" {
+		for _, tr := range trss.Trs {
+			trs = append(trs, iTracker{Id:tr.Id, Name:tr.Name})
+		}
+		return trs, nil
+	}
+	for _, tr := range trss.Trs {
+		if tr.Name == target {
+			return []iTracker{iTracker{Id:tr.Id, Name:tr.Name}}, nil
+		}
+	}
+	return []iTracker{}, nil
+}
+
+func (self *Redmine) GetLabels() ([]issue.Label, error) {
+	cts, err := self.getCategories("")
+	if err != nil {
+		return []issue.Label{}, err
+	}
+
+	var lbs []issue.Label
+	for _, ct := range cts {
+		lbs = append(lbs, tCategory2IssueLabel(ct)[0])
+	}
+	return lbs, nil
+}
+
+func (self *Redmine) getCategories(target string) ([]iCategory, error){
+	type Category struct {
+		Id    int64     `xml:"id"`
+		Name  string    `xml:"name"`
+	}
+	type Categories struct {
+		Cts  []Category `xml:"issue_category"`
+	}
+	var ctss Categories
+
+	bret, err := self.httpReqCategories()
+	if err != nil {
+		return []iCategory{}, err
+	}
+	if err := xml.Unmarshal(bret, &ctss); err != nil {
+		return []iCategory{}, err
+	}
+
+	var cts []iCategory
+	if target == "" {
+		for _, ct := range ctss.Cts {
+			cts = append(cts, iCategory{Id:ct.Id, Name:ct.Name})
+		}
+		return cts, nil
+	}
+	for _, ct := range ctss.Cts {
+		if ct.Name == target {
+			return []iCategory{iCategory{Id:ct.Id, Name:ct.Name}}, nil
+		}
+	}
+	return []iCategory{}, err
+}
+
+func (self *Redmine) AddLabel(inum string, lb string) error {
+	fmt.Printf("overwrite label(category)\n")
+	return self.modCategory(inum, lb)
+}
+
+func (self *Redmine) modCategory(inum string, ctname string) error {
+	tk, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	etk := ticket2TicketE(tk)
+
+	cts, err := self.getCategories(ctname)
+	if err != nil {
+		return err
+	}
+	if len(cts) < 1 {
+		fmt.Printf("undefined name : %s\n", ctname)
+		return nil
+	}
+	etk.CategoryId = cts[0].Id
+	if err := self.updatePostIssue(&etk); err != nil {
+		return err
+	}
+	fmt.Printf("Updated category #%s : %s -> %s\n",inum, tk.Category.Name, cts[0].Name)
+	return nil
+}
+
+func (self *Redmine) DelLabel(inum string, lb string) error {
+	return self.delCategory(inum, lb)
+}
+
+func (self *Redmine) delCategory(inum string, ctname string) error {
+	tk, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	if tk.Category.Name != ctname {
+		fmt.Printf("hasn't category\n")
+		return nil
+	}
+	etk := ticket2TicketE(tk)
+
+	etk.CategoryId = 0
+	if err := self.updatePostIssue(&etk); err != nil {
+		return err
+	}
+	fmt.Printf("Deleted category #%s : %s \n",inum, tk.Category.Name)
+	return nil
 }
 
 func (self *Redmine) getIssues(com, withclose bool) ([]Ticket, error) {
@@ -282,7 +433,6 @@ func (self *Redmine) addIssueComment(inum string, comment string) error {
 func (self *Redmine) ModifyIssue(is issue.Issue) error {
 	tk := issue2Tikect(is)
 	etk := ticket2TicketE(tk)
-	etk.StatusId = "2"
 	return self.modifyIssue(etk)
 }
 
@@ -393,7 +543,7 @@ func (self *Redmine) toggleIssueState(inum string, state string) error {
 	}
 
 	etk := ticket2TicketE(tk)
-	etk.StatusId = fmt.Sprintf("%v", targetId)
+	etk.StatusId = targetId
 	if err := self.updatePostIssue(&etk); err != nil {
 		return err
 	}
@@ -417,6 +567,34 @@ func (self *Redmine) postIssue(etk *TicketE) error {
 
 func (self *Redmine) updatePostIssue(etk *TicketE) error {
 	return self.httpReqIssue("PUT", etk)
+}
+
+func (self *Redmine) httpReqCategories() ([]byte, error) {
+	url := self.url + "/projects/" + self.repository + "/issue_categories.xml"
+
+	bret, rcode, err := self.reqHttp("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rcode != 200 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, nil
+	}
+	return bret, nil
+}
+
+func (self *Redmine) httpReqTrackers() ([]byte, error) {
+	url := self.url + "trackers.xml"
+
+	bret, rcode, err := self.reqHttp("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rcode != 200 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, nil
+	}
+	return bret, nil
 }
 
 func (self *Redmine) httpReqComment(method string , inum string, body string) error {
@@ -639,6 +817,9 @@ func ticket2TicketE(tk Ticket) TicketE {
 	ntk.Description = tk.Description
 	ntk.Status = tk.Status
 	ntk.User = tk.User
+	ntk.StatusId  = tk.Status.Id
+	ntk.TrackerId = tk.Tracker.Id
+	ntk.CategoryId = tk.Category.Id
 	return ntk
 }
 
