@@ -12,17 +12,122 @@ import (
 )
 
 func (self *Github) DeleteMilestone(inum string) error {
+	return self.deleteMilestone(inum)
+}
+
+func (self *Github) deleteMilestone(inum string) error {
+	is, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	eis := iIssue2iIssueE(is)
+
+	eis.MilestoneId = ""
+	_, err = self.updatePostIssue(&eis)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("deleted milestone #%s : %s\n", inum, is.Milestone.Title)
 	return nil
 }
 
 func (self *Github) UpdateMilestone(inum string, mlname string) error {
+	return self.updateMilestone(inum, mlname)
+}
+
+func (self *Github) updateMilestone(inum string, mlname string) error {
+	mls, err := self.getMilestones(mlname)
+	if err != nil {
+		return err
+	}
+	if len(mls) < 1 {
+		fmt.Printf("undefined milestonename : %s\n", mlname)
+		return nil
+	}
+
+	is, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	eis := iIssue2iIssueE(is)
+
+	eis.MilestoneId = fmt.Sprintf("%v", mls[0].Num)
+	nis, err := self.updatePostIssue(&eis)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("updated milestone #%s : %s -> %s\n", inum, is.Milestone.Title, nis.Milestone.Title)
+	return nil
+}
+
+func (self *Github) httpReqMilestone(method string , inum string, ml iIMilestone) error {
+	url := self.url + "api/v1/repos/" + self.repository + "/issues/" + inum
+
+	id := fmt.Sprintf("%v", ml.Id)
+	json_str := `{"milestone":` + id + ` }`
+
+	_, rcode, err := self.reqHttp(method, url, []byte(json_str))
+	if err != nil {
+		return err
+	}
+	if rcode != 201 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil
+	}
 	return nil
 }
 
 func (self *Github) GetMilestones() ([]issue.Milestone, error) {
-	var ret []issue.Milestone
-	return ret, nil
+	imls, err := self.getMilestones("")
+	if err != nil {
+		return []issue.Milestone{}, nil
+	}
+
+	var mls []issue.Milestone
+	for _, iml := range imls {
+		mls = append(mls, iIMilestone2IssueMilestone(iml))
+	}
+	return mls, nil
 }
+
+func (self *Github) getMilestones(target string) ([]iIMilestone, error) {
+	bret, err := self.httpGetMilestones()
+	if err != nil {
+		return []iIMilestone{}, err
+	}
+
+	var mls []iIMilestone
+	if err := json.Unmarshal(bret, &mls); err != nil {
+		return []iIMilestone{}, err
+	}
+
+	if target == "" {
+		return mls, nil
+	}
+	for _, ml := range mls {
+		if ml.Title == target {
+			return []iIMilestone{ml}, nil
+		}
+	}
+	return []iIMilestone{}, nil
+}
+
+func (self *Github) httpGetMilestones() ([]byte, error) {
+	url := self.url + "repos/" + self.repository + "/milestones"
+
+	bret, rcode, err := self.reqHttp("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rcode != 200 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, nil
+	}
+	return bret, nil
+}
+
 
 func (self *Github) GetLabels() ([]issue.Label, error) {
 	var ret []issue.Label
@@ -46,13 +151,15 @@ type Github struct {
 }
 
 type iIssueE struct {
-	Id     int64      `json:"id"`
-	Num    int64      `json:"number"`
-	Title  string     `json:"title"`
-	Body   string     `json:"body"`
-	State  string     `json:"state"`
-	User   iIUser     `json:"user"`
-	Update time.Time  `json:"updated_at"`
+	Id          int64      `json:"id"`
+	Num         int64      `json:"number"`
+	Title       string     `json:"title"`
+	Body        string     `json:"body"`
+	MilestoneId string     `json:"milestone"`
+	State       string     `json:"state"`
+	User        iIUser     `json:"user"`
+	Update      time.Time  `json:"updated_at"`
+	Labels      []string   `json:"labels,omitempty"`
 }
 
 type iIssue struct {
@@ -62,12 +169,12 @@ type iIssue struct {
 	Body      string      `json:"body"`
 	Url       string      `json:"url"`
 	State     string      `json:"state"`
-	Labels    []iILabel   `json:"labels, omitempty"`
+	Labels    []iILabel   `json:"labels,omitempty"`
 	Milestone iIMilestone `json:"milestone"`
 	Update    time.Time   `json:"updated_at"`
 	User      iIUser      `json:"user"`
 	Assginees []iIAssgin  `json:"assignees"`
-	Comments  []iIComment `json:"com, omitempty"`
+	Comments  []iIComment `json:"com,omitempty"`
 }
 
 type iIComment struct {
@@ -91,6 +198,7 @@ type iIUser struct {
 
 type iIMilestone struct {
 	Id     int64  `json:"id"`
+	Num    int64  `json:"number"`
 	Title  string `json:"title"`
 }
 
@@ -278,8 +386,9 @@ func (self *Github) CreateIssue(is issue.Issue) error {
 	return self.createIssue(i_ise)
 }
 
-func (self *Github) createIssue(ise iIssueE)  error {
-	if err := self.postIssue(&ise); err != nil {
+func (self *Github) createIssue(ise iIssueE) error {
+	_, err := self.postIssue(&ise)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -303,7 +412,8 @@ func (self *Github) ModifyIssue(is issue.Issue) error {
 }
 
 func (self *Github) modifyIssue(ise iIssueE) error {
-	if err := self.updatePostIssue(&ise); err != nil {
+	_, err := self.updatePostIssue(&ise)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -355,27 +465,27 @@ func (self *Github) toggleIssueState(inum string, state string) error {
 		return nil
 	}
 
-	old := is.Update
 	is.State = state
 	eis := iIssue2iIssueE(is)
-	if err := self.updatePostIssue(&eis); err != nil {
+	nis, err := self.updatePostIssue(&eis)
+	if err != nil {
 		return err
 	}
-	if old == is.Update {
+	if nis.Update == is.Update {
 		fmt.Printf("not update\n")
 		return nil
 	}
 
-	fmt.Printf("state updated : %s\n", is.State)
+	fmt.Printf("state updated : %s\n", nis.State)
 	return nil
 }
 
-func (self *Github) postIssue(ise *iIssueE) error {
-	return self.httpReqIssue("POST", ise)
+func (self *Github) postIssue(ise *iIssueE) (iIssue, error) {
+	return self.httpIssue("POST", ise)
 }
 
-func (self *Github) updatePostIssue(ise *iIssueE) error {
-	return self.httpReqIssue("PATCH", ise)
+func (self *Github) updatePostIssue(ise *iIssueE) (iIssue, error) {
+	return self.httpIssue("PATCH", ise)
 }
 
 func (self *Github) httpReqComment(method string , inum string, body string) error {
@@ -394,7 +504,7 @@ func (self *Github) httpReqComment(method string , inum string, body string) err
 	return nil
 }
 
-func (self *Github) httpReqIssue(method string, ise *iIssueE) error {
+func (self *Github) httpIssue(method string, ise *iIssueE) (iIssue, error) {
 	url := self.url + "repos/" + self.repository + "/issues"
 
 	retcode := 201
@@ -406,22 +516,24 @@ func (self *Github) httpReqIssue(method string, ise *iIssueE) error {
 	ise.Update = time.Now()
 	ijson, err := json.Marshal(*ise)
 	if err != nil {
-		return err
+		return iIssue{}, err
 	}
+	fmt.Printf("%s\n", ijson)
 	iret, rcode, err := self.reqHttp(method, url, []byte(ijson))
 	if err != nil {
-		return err
+		return iIssue{}, err
 	}
 	if rcode != retcode {
 		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
+		return iIssue{}, nil
 	}
 
-	if err := json.Unmarshal(iret, &ise); err != nil {
-		return err
+	var is iIssue
+	if err := json.Unmarshal(iret, &is); err != nil {
+		return iIssue{}, err
 	}
 	fmt.Printf("issue posted : #%v\n",ise.Num)
-	return nil
+	return is, nil
 }
 
 func (self *Github) reqHttp(method, url string, param []byte ) ([]byte,
@@ -611,5 +723,10 @@ func iIssue2iIssueE(is iIssue) iIssueE {
 	nis.Body = is.Body
 	nis.State = is.State
 	nis.User  = is.User
+	nis.MilestoneId  = fmt.Sprintf("%v",is.Milestone.Num)
+
+	for _, label := range is.Labels {
+		nis.Labels = append(nis.Labels, label.Name)
+	}
 	return nis
 }
