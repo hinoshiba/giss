@@ -11,107 +11,6 @@ import (
 	"giss/apicon/issue"
 )
 
-func (self *Github) DeleteMilestone(inum string) error {
-	return self.deleteMilestone(inum)
-}
-
-func (self *Github) deleteMilestone(inum string) error {
-	is, err := self.getIssue(inum)
-	if err != nil {
-		return err
-	}
-	eis := iIssue2iIssueE(is)
-
-	eis.MilestoneId = ""
-	_, err = self.updatePostIssue(&eis)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("deleted milestone #%s : %s\n", inum, is.Milestone.Title)
-	return nil
-}
-
-func (self *Github) UpdateMilestone(inum string, mlname string) error {
-	return self.updateMilestone(inum, mlname)
-}
-
-func (self *Github) updateMilestone(inum string, mlname string) error {
-	mls, err := self.getMilestones(mlname)
-	if err != nil {
-		return err
-	}
-	if len(mls) < 1 {
-		fmt.Printf("undefined milestonename : %s\n", mlname)
-		return nil
-	}
-
-	is, err := self.getIssue(inum)
-	if err != nil {
-		return err
-	}
-	eis := iIssue2iIssueE(is)
-
-	eis.MilestoneId = fmt.Sprintf("%v", mls[0].Num)
-	nis, err := self.updatePostIssue(&eis)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("updated milestone #%s : %s -> %s\n", inum, is.Milestone.Title, nis.Milestone.Title)
-	return nil
-}
-
-func (self *Github) GetMilestones() ([]issue.Milestone, error) {
-	imls, err := self.getMilestones("")
-	if err != nil {
-		return []issue.Milestone{}, nil
-	}
-
-	var mls []issue.Milestone
-	for _, iml := range imls {
-		mls = append(mls, iIMilestone2IssueMilestone(iml))
-	}
-	return mls, nil
-}
-
-func (self *Github) getMilestones(target string) ([]iIMilestone, error) {
-	bret, err := self.httpGetMilestones()
-	if err != nil {
-		return []iIMilestone{}, err
-	}
-
-	var mls []iIMilestone
-	if err := json.Unmarshal(bret, &mls); err != nil {
-		return []iIMilestone{}, err
-	}
-
-	if target == "" {
-		return mls, nil
-	}
-	for _, ml := range mls {
-		if ml.Title == target {
-			return []iIMilestone{ml}, nil
-		}
-	}
-	return []iIMilestone{}, nil
-}
-
-func (self *Github) httpGetMilestones() ([]byte, error) {
-	url := self.url + "repos/" + self.repository + "/milestones"
-
-	bret, rcode, err := self.reqHttp("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil, nil
-	}
-	return bret, nil
-}
-
-
 func (self *Github) GetLabels() ([]issue.Label, error) {
 	var ret []issue.Label
 	return ret, nil
@@ -461,6 +360,106 @@ func (self *Github) toggleIssueState(inum string, state string) error {
 
 	fmt.Printf("state updated : %s\n", nis.State)
 	return nil
+}
+
+func (self *Github) DeleteMilestone(inum string) error {
+	return self.deleteMilestone(inum)
+}
+
+func (self *Github) deleteMilestone(inum string) error {
+	is, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	eis := iIssue2iIssueE(is)
+
+	eis.MilestoneId = ""
+	_, err = self.updatePostIssue(&eis)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("deleted milestone #%s : %s\n", inum, is.Milestone.Title)
+	return nil
+}
+
+func (self *Github) UpdateMilestone(inum string, mlname string) error {
+	return self.updateMilestone(inum, mlname)
+}
+
+func (self *Github) updateMilestone(inum string, mlname string) error {
+	mls, err := self.getMilestones(mlname)
+	if err != nil {
+		return err
+	}
+	if len(mls) < 1 {
+		fmt.Printf("undefined milestonename : %s\n", mlname)
+		return nil
+	}
+
+	is, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	eis := iIssue2iIssueE(is)
+
+	eis.MilestoneId = fmt.Sprintf("%v", mls[0].Num)
+	nis, err := self.updatePostIssue(&eis)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("updated milestone #%s : %s -> %s\n", inum, is.Milestone.Title, nis.Milestone.Title)
+	return nil
+}
+
+func (self *Github) GetMilestones() ([]issue.Milestone, error) {
+	imls, err := self.getMilestones("")
+	if err != nil {
+		return []issue.Milestone{}, nil
+	}
+
+	var mls []issue.Milestone
+	for _, iml := range imls {
+		mls = append(mls, iIMilestone2IssueMilestone(iml))
+	}
+	return mls, nil
+}
+
+func (self *Github) getMilestones(target string) ([]iIMilestone, error) {
+	bret, err := self.httpGetMilestones()
+	if err != nil {
+		return []iIMilestone{}, err
+	}
+
+	var mls []iIMilestone
+	if err := json.Unmarshal(bret, &mls); err != nil {
+		return []iIMilestone{}, err
+	}
+
+	if target == "" {
+		return mls, nil
+	}
+	for _, ml := range mls {
+		if ml.Title == target {
+			return []iIMilestone{ml}, nil
+		}
+	}
+	return []iIMilestone{}, nil
+}
+
+func (self *Github) httpGetMilestones() ([]byte, error) {
+	url := self.url + "repos/" + self.repository + "/milestones"
+
+	bret, rcode, err := self.reqHttp("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rcode != 200 {
+		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, nil
+	}
+	return bret, nil
 }
 
 func (self *Github) postIssue(ise *iIssueE) (iIssue, error) {
