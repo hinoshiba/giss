@@ -1,0 +1,4 @@
+/bin/
+*.swp
+/pkg/
+/src/giss/vendor/
