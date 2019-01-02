@@ -10,9 +10,9 @@ how to use : giss <subcommand> ...
 Advance preparation
 
 Credential & Repository operation
- checkin			(beta Function) It targets the issue of the remote repository in the current directory.
- login				Login to current git server and get token.
- status				Display the status of remote repository and login.
+ checkin				Can choose the giss target repository.
+ login					Login to current git server and get token.
+ status					Display the status of target repository and login.
 
 Issues operation
  create 				Create a issue.
@@ -40,13 +40,13 @@ Labels operation
 
 Advance operation
  repo					(beta Function) A mail is automatically generated in which addresses, headers, etc. are automatically inserted.
- 				Must be set in advance in "~/.gissrc ".
- export [-a] <type>			(test Function) export all of the issues at stdout.
+ export [-a] <type>			(beta Function) export all of the issues at stdout.
 						-a         : with export the closed issues.
 						<type>     : json, xml.
 
 ---------------------------------------------------------
 
+Must be setup in "~/.gissrc ".
 Temporary files are managed under "~/.giss/".
 
 If you have any problems, please contact to <https://github.com/hinoshiba/giss/>.
