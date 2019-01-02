@@ -11,103 +11,6 @@ import (
 	"giss/apicon/issue"
 )
 
-func (self *Github) GetLabels() ([]issue.Label, error) {
-	lbs, err := self.getLabels("")
-	if err != nil {
-		return []issue.Label{}, err
-	}
-
-	var ilbs []issue.Label
-	for _, lb := range lbs {
-		ilbs = append(ilbs, iILabel2IssueLabel(lb))
-	}
-	return ilbs, nil
-}
-
-func (self *Github) getLabels(target string) ([]iILabel, error) {
-	var lbs []iILabel
-	bret, err := self.httpGetLabel()
-	if err != nil {
-		return lbs, err
-	}
-	if err := json.Unmarshal(bret, &lbs); err != nil {
-		return lbs, err
-	}
-
-	if target == "" {
-		return lbs, nil
-	}
-	for _, lb := range lbs {
-		if lb.Name == target {
-			return []iILabel{lb}, nil
-		}
-	}
-	return []iILabel{}, nil
-}
-
-func (self *Github) AddLabel(inum string, lb string) error {
-	return self.addLabel(inum, lb)
-}
-
-func (self *Github) addLabel(inum string, lbname string) error {
-	lbs, err := self.getLabels(lbname)
-	if err != nil {
-		return err
-	}
-	if len(lbs) < 1 {
-		fmt.Printf("undefined label : %s\n", lbname)
-		return nil
-	}
-
-	is, err := self.getIssue(inum)
-	if err != nil {
-		return err
-	}
-	eis := iIssue2iIssueE(is)
-	eis.Labels = append(eis.Labels, lbs[0].Name)
-
-	_, err = self.updatePostIssue(&eis)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (self *Github) DelLabel(inum string, lb string) error {
-	return self.delLabel(inum, lb)
-}
-
-func (self *Github) delLabel(inum string, lbname string) error {
-	lbs, err := self.getLabels(lbname)
-	if err != nil {
-		return err
-	}
-	if len(lbs) < 1 {
-		fmt.Printf("undefined label : %s\n", lbname)
-		return nil
-	}
-
-	is, err := self.getIssue(inum)
-	if err != nil {
-		return err
-	}
-	eis := iIssue2iIssueE(is)
-
-	eis.Labels = make([]string, 0)
-	for _, lb := range is.Labels {
-		if lb.Name == lbs[0].Name {
-			continue
-		}
-		eis.Labels = append(eis.Labels, lb.Name)
-	}
-
-	_, err = self.updatePostIssue(&eis)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 type Github struct {
 	url string
 	repository string
@@ -529,6 +432,103 @@ func (self *Github) getMilestones(target string) ([]iIMilestone, error) {
 		}
 	}
 	return []iIMilestone{}, nil
+}
+
+func (self *Github) GetLabels() ([]issue.Label, error) {
+	lbs, err := self.getLabels("")
+	if err != nil {
+		return []issue.Label{}, err
+	}
+
+	var ilbs []issue.Label
+	for _, lb := range lbs {
+		ilbs = append(ilbs, iILabel2IssueLabel(lb))
+	}
+	return ilbs, nil
+}
+
+func (self *Github) getLabels(target string) ([]iILabel, error) {
+	var lbs []iILabel
+	bret, err := self.httpGetLabel()
+	if err != nil {
+		return lbs, err
+	}
+	if err := json.Unmarshal(bret, &lbs); err != nil {
+		return lbs, err
+	}
+
+	if target == "" {
+		return lbs, nil
+	}
+	for _, lb := range lbs {
+		if lb.Name == target {
+			return []iILabel{lb}, nil
+		}
+	}
+	return []iILabel{}, nil
+}
+
+func (self *Github) AddLabel(inum string, lb string) error {
+	return self.addLabel(inum, lb)
+}
+
+func (self *Github) addLabel(inum string, lbname string) error {
+	lbs, err := self.getLabels(lbname)
+	if err != nil {
+		return err
+	}
+	if len(lbs) < 1 {
+		fmt.Printf("undefined label : %s\n", lbname)
+		return nil
+	}
+
+	is, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	eis := iIssue2iIssueE(is)
+	eis.Labels = append(eis.Labels, lbs[0].Name)
+
+	_, err = self.updatePostIssue(&eis)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *Github) DelLabel(inum string, lb string) error {
+	return self.delLabel(inum, lb)
+}
+
+func (self *Github) delLabel(inum string, lbname string) error {
+	lbs, err := self.getLabels(lbname)
+	if err != nil {
+		return err
+	}
+	if len(lbs) < 1 {
+		fmt.Printf("undefined label : %s\n", lbname)
+		return nil
+	}
+
+	is, err := self.getIssue(inum)
+	if err != nil {
+		return err
+	}
+	eis := iIssue2iIssueE(is)
+
+	eis.Labels = make([]string, 0)
+	for _, lb := range is.Labels {
+		if lb.Name == lbs[0].Name {
+			continue
+		}
+		eis.Labels = append(eis.Labels, lb.Name)
+	}
+
+	_, err = self.updatePostIssue(&eis)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (self *Github) httpGetLabel() ([]byte, error) {
