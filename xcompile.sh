@@ -14,8 +14,10 @@ mkdir -p ${DIR}
 echo "# ${Version}" > ${README}
 echo "## changelog" >> ${README}
 git log $(git describe --tags --abbrev=0)..HEAD --oneline >> ${README}
+echo "" >> ${README}
+
 git tag "${Version}"
-#git push --tag
+git push --tag
 
 export GOPATH="`pwd`"
 ls -1 src/giss/exec | while read row ; do
