@@ -62,23 +62,6 @@ func (self *Github) updateMilestone(inum string, mlname string) error {
 	return nil
 }
 
-func (self *Github) httpReqMilestone(method string , inum string, ml iIMilestone) error {
-	url := self.url + "api/v1/repos/" + self.repository + "/issues/" + inum
-
-	id := fmt.Sprintf("%v", ml.Id)
-	json_str := `{"milestone":` + id + ` }`
-
-	_, rcode, err := self.reqHttp(method, url, []byte(json_str))
-	if err != nil {
-		return err
-	}
-	if rcode != 201 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
-	}
-	return nil
-}
-
 func (self *Github) GetMilestones() ([]issue.Milestone, error) {
 	imls, err := self.getMilestones("")
 	if err != nil {
