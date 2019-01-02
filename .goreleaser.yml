@@ -1,0 +1,11 @@
+# .goreleaser.yml
+# https://goreleaser.com
+builds:
+  - main: giss.go
+    binary: giss
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
