@@ -1,7 +1,7 @@
 # .goreleaser.yml
 # https://goreleaser.com
 builds:
-  - main: giss.go
+  - main: src/giss/exec/giss/giss.go
     binary: giss
     goos:
       - windows
