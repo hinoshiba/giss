@@ -43,6 +43,11 @@ Advance operation
  export [-a] <type>			(beta Function) export all of the issues at stdout.
 						-a         : with export the closed issues.
 						<type>     : json, xml.
+ import [-a] <type>			(beta Function) export all of the issues at stdout.
+ 					 - can't import comment.
+					 - label, milestone can not be imported depending on the situation.
+						-a         : with export the closed issues.
+						<type>     : json, xml.
 
 ---------------------------------------------------------
 

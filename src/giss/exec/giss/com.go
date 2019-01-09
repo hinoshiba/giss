@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"io/ioutil"
 	"fmt"
 	"time"
 	"bufio"
@@ -13,6 +14,57 @@ import (
 	"giss/apicon/issue"
 	"github.com/hinoshiba/go-editor/editor"
 )
+
+func ComImport(options []string) error {
+	if len(options) < 1 {
+		fmt.Printf("can't detect export type\n")
+		return nil
+	}
+
+	if options[0] == "" {
+		fmt.Printf("unknown export type : %s\n", options[0])
+		return nil
+	}
+	if options[0] != "json" && options[0] != "xml" {
+		fmt.Printf("unknown export type : %s\n", options[0])
+		return nil
+	}
+
+
+	b, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return err
+	}
+
+	var iss []issue.Issue
+	switch(options[0]) {
+	case "json" :
+		if err := issue.ImportJson(&iss, b); err != nil {
+			return err
+		}
+		break
+	case "xml" :
+		if err := issue.ImportXml(&iss, b); err != nil {
+			return err
+		}
+		break
+	default:
+		fmt.Printf("unknown export type : %s\n", options[0])
+		return nil
+	}
+
+	for _, is := range iss {
+		is.Id = 0
+		is.Num = 0
+
+		if err := Apicon.CreateIssue(is); err != nil {
+			fmt.Printf("create failed : %s\n", is.Title)
+			continue
+		}
+		fmt.Printf("create success : %s\n", is.Title)
+	}
+	return nil
+}
 
 func ComReport() error {
 	report_str := Conf.Report.Header
