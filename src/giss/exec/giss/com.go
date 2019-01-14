@@ -485,6 +485,10 @@ func ComLogin() error {
 	return nil
 }
 
+func ComTerm() error {
+	return gissterm()
+}
+
 func ComVersion() error {
 	fmt.Printf("%s\n",values.VersionText)
 	return nil

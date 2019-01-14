@@ -31,6 +31,8 @@ func warn(s string, msg ...interface{}) {
 func giss() error {
 	var err error
 	switch RunMode {
+	case "term":
+		err = ComTerm()
 	case "checkin":
 		err = ComCheckin()
 	case "report":

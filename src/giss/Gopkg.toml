@@ -31,7 +31,19 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/aybabtme/rgbterm"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/hinoshiba/go-editor"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hinoshiba/goctx"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hinoshiba/termwindow"
 
 [prune]
   go-tests = true
