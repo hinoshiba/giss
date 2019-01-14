@@ -150,6 +150,33 @@ func (self *Issue) PrintMd() error {
 	return nil
 }
 
+func (self *Issue) BprintMd() [][]byte {
+	var ret [][]byte
+
+	labelstr := ""
+	for _, lb := range self.Labels {
+		if lb.Name == "" {
+			continue
+		}
+		labelstr += " " + lb.Name
+	}
+
+	ret = append(ret, []byte(fmt.Sprintf("# %d : %s %s\n", self.Num, self.Title, labelstr)))
+	ret = append(ret, []byte(fmt.Sprintf("## ( %s ) %s %s comments(%d)\n\n",
+		self.State.Name, self.User.Name, self.Update, len(self.Comments))))
+	if len(self.Body) > 0 {
+		ret = append(ret, []byte(fmt.Sprintf("## Body #########################\n\n")))
+		ret = append(ret, []byte(fmt.Sprintf("%s\n\n",self.Body)))
+	}
+	for _, com := range self.Comments {
+		ret = append(ret, []byte(fmt.Sprintf("## Comment #%d %s %s #########################\n\n",
+			com.Id, com.User.Name, com.Update)))
+		ret = append(ret, []byte(fmt.Sprintf("%s\n\n",com.Body)))
+	}
+
+	return ret
+}
+
 func (self *Label) GetLabelStr() (string, error) {
 	return self.getLabelStr()
 }
@@ -170,7 +197,11 @@ func (self *Label) getLabelStr() (string, error) {
 
 func (self *Issue) getLabelsStr() (string, error) {
 	var ret string
+
 	for _, lb := range self.Labels {
+		if lb.Name == "" {
+			continue
+		}
 		l, err := lb.getLabelStr()
 		if err != nil {
 			return "", err
@@ -179,6 +210,21 @@ func (self *Issue) getLabelsStr() (string, error) {
 		ret += " " + l + "\x1b[0m"
 	}
 	return ret, nil
+}
+
+func (self *Issue) SprintHead() (string, error) {
+	labelstr, err := self.getLabelsStr()
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf(" %4s [ %-10s ] [ %-10s ] %s %s\n",
+		fmt.Sprintf("#%d", self.Num),
+		self.State.Name,
+		self.Milestone.Title,
+		self.Title,
+		labelstr,
+	), nil
 }
 
 func (self *Issue) PrintHead() error {
