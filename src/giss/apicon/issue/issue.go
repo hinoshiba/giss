@@ -150,8 +150,8 @@ func (self *Issue) PrintMd() error {
 	return nil
 }
 
-func (self *Issue) BprintMd() [][]byte {
-	var ret [][]byte
+func (self *Issue) SprintMd() string {
+	var ret string
 
 	labelstr := ""
 	for _, lb := range self.Labels {
@@ -161,17 +161,17 @@ func (self *Issue) BprintMd() [][]byte {
 		labelstr += " " + lb.Name
 	}
 
-	ret = append(ret, []byte(fmt.Sprintf("# %d : %s %s\n", self.Num, self.Title, labelstr)))
-	ret = append(ret, []byte(fmt.Sprintf("## ( %s ) %s %s comments(%d)\n\n",
-		self.State.Name, self.User.Name, self.Update, len(self.Comments))))
+	ret += fmt.Sprintf("# %d : %s %s\n", self.Num, self.Title, labelstr)
+	ret += fmt.Sprintf("## ( %s ) %s %s comments(%d)\n\n",
+		self.State.Name, self.User.Name, self.Update, len(self.Comments))
 	if len(self.Body) > 0 {
-		ret = append(ret, []byte(fmt.Sprintf("## Body #########################\n\n")))
-		ret = append(ret, []byte(fmt.Sprintf("%s\n\n",self.Body)))
+		ret += fmt.Sprintf("## Body #########################\n\n")
+		ret += fmt.Sprintf("%s\n\n",self.Body)
 	}
 	for _, com := range self.Comments {
-		ret = append(ret, []byte(fmt.Sprintf("## Comment #%d %s %s #########################\n\n",
-			com.Id, com.User.Name, com.Update)))
-		ret = append(ret, []byte(fmt.Sprintf("%s\n\n",com.Body)))
+		ret += fmt.Sprintf("## Comment #%d %s %s #########################\n\n",
+			com.Id, com.User.Name, com.Update)
+		ret += fmt.Sprintf("%s\n\n",com.Body)
 	}
 
 	return ret

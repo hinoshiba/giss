@@ -5,7 +5,8 @@ import (
 	"github.com/hinoshiba/termwindow"
 	"giss/apicon/issue"
 	"giss/values"
-	"errors"
+	"giss/msg"
+	"strings"
 	"fmt"
 )
 
@@ -29,18 +30,17 @@ func gissterm() error {
 	return nil
 }
 func termMenu(wk goctx.Worker) {
+	defer wk.Done()
 	issues, err := termLs(false)
 	if err != nil {
 		termwindow.SetErr(err)
 	}
 	termwindow.SetMenu(issues.Data)
-	//var buf string
 	var closed_print = false
 
 	for {
 		select {
 		case <-wk.RecvCancel():
-			wk.Done()
 			return
 		case  ev := <-termwindow.Key:
 			switch ev.Key {
@@ -56,6 +56,21 @@ func termMenu(wk goctx.Worker) {
 				}
 				closed_print = true
 				termwindow.SetMsg("print with closed.")
+			case termwindow.KeyEnter:
+				id, v := issues.GetData(issues.Active)
+				if len(v) < 0 {
+					termwindow.SetMsg("target not found")
+					continue
+				}
+				is, err := termShow(id)
+				if err != nil {
+					termwindow.SetErr(err)
+					continue
+				}
+				termwindow.SetMsg("open #%v", id)
+				termBody(wk.NewWorker(), is)
+				termwindow.SetMsg("closed #%v", id)
+				termwindow.ReFlush()
 			}
 			switch ev.Ch {
 			case '$':
@@ -65,7 +80,6 @@ func termMenu(wk goctx.Worker) {
 					termwindow.SetErr(err)
 				}
 				termwindow.SetMenu(issues.Data)
-
 				termwindow.SetMsg("updated issues data.")
 			case 'j':
 				termwindow.SetActiveLine(issues.MvInc())
@@ -97,48 +111,6 @@ func termMenu(wk goctx.Worker) {
 				}
 				termwindow.SetMsg("commented.")
 				termwindow.ReFlush()
-			case 'o':
-				id, v := issues.GetData(issues.Active)
-				if len(v) < 0 {
-					termwindow.SetMsg("target not found")
-					continue
-				}
-				is, err := termShow(id)
-				if err != nil {
-					termwindow.SetErr(err)
-					continue
-				}
-				termwindow.SetBody(is.Data)
-				func() {
-				for {
-					select {
-					case <-wk.RecvCancel():
-						wk.Done()
-						return
-					case  ev := <-termwindow.Key:
-						switch ev.Key {
-						case termwindow.KeyCtrlN:
-							termwindow.SetActiveLine(is.MvInc())
-						case termwindow.KeyCtrlP:
-							termwindow.SetActiveLine(is.MvDec())
-						}
-						switch ev.Ch {
-						case 'j':
-							termwindow.SetActiveLine(is.MvInc())
-						case 'k':
-							termwindow.SetActiveLine(is.MvDec())
-						case 'G':
-							termwindow.SetActiveLine(is.MvBottom())
-						case 'g':
-							termwindow.SetActiveLine(is.MvTop())
-						case 'q':
-							termwindow.UnsetBody()
-							return
-						}
-					}
-				}
-				}()
-				termwindow.ReFlush()
 			case 'C':
 				id, v := issues.GetData(issues.Active)
 				if len(v) < 0 {
@@ -165,7 +137,6 @@ func termMenu(wk goctx.Worker) {
 				termwindow.ReFlush()
 			case 'q':
 				wk.Cancel()
-				wk.Done()
 				return
 			}
 		default:
@@ -173,13 +144,47 @@ func termMenu(wk goctx.Worker) {
 	}
 }
 
-func inputRecode(wk goctx.Worker, title string, ) string {
+func termBody(wk goctx.Worker, is termwindow.Lines) {
+	defer wk.Done()
+
+	termwindow.SetBody(is.Data)
+	defer termwindow.UnsetBody()
+	for {
+		select {
+		case <-wk.RecvCancel():
+			return
+		case  ev := <-termwindow.Key:
+			switch ev.Key {
+			case termwindow.KeyCtrlN:
+				termwindow.SetActiveLine(is.MvInc())
+			case termwindow.KeyCtrlP:
+				termwindow.SetActiveLine(is.MvDec())
+			}
+			switch ev.Ch {
+			case 'j':
+				termwindow.SetActiveLine(is.MvInc())
+			case 'k':
+				termwindow.SetActiveLine(is.MvDec())
+			case 'G':
+				termwindow.SetActiveLine(is.MvBottom())
+			case 'g':
+				termwindow.SetActiveLine(is.MvTop())
+			case 'q':
+				termwindow.UnsetBody()
+				return
+			}
+		}
+	}
+}
+
+func inputRecode(wk goctx.Worker, title string) string {
+	defer wk.Done()
+
 	var buf string
 	for {
 		termwindow.SetMsg(title + " : " + buf)
 		select {
 		case <-wk.RecvCancel():
-			wk.Done()
 			return ""
 		case  ev := <-termwindow.Key:
 			switch ev.Key {
@@ -211,11 +216,17 @@ func termShow(id int) (termwindow.Lines, error) {
 		return termwindow.Lines{}, err
 	}
 	if issue.State.Name == "" {
-		return termwindow.Lines{}, errors.New("undefined issue")
+		return termwindow.Lines{}, msg.NewErr("undefined issue")
 	}
 
 	var lines termwindow.Lines
-	lines.Data = issue.BprintMd()
+	lines.Data.Title = []byte(msg.NewStr("Issue #%s detail window", sid))
+	sis := issue.SprintMd()
+	sisml := strings.Split(sis, "\n")
+	for _, sisl := range sisml {
+		lines.Append(0, []byte(sisl))
+	}
+
 	return lines, nil
 }
 
