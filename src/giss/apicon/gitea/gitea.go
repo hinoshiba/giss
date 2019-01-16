@@ -1,12 +1,12 @@
 package gitea
 
 import (
-	"fmt"
 	"time"
 	"bytes"
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"giss/msg"
 	"giss/apicon/httpcl"
 	"giss/apicon/issue"
 )
@@ -127,11 +127,9 @@ func (self *Gitea) IsLogined() bool {
 
 func (self *Gitea) isLogined() bool {
 	if self.token == "" {
-		fmt.Printf("not login\n")
 		return false
 	}
 	if self.user == "" {
-		fmt.Printf("not login\n")
 		return false
 	}
 	return true
@@ -159,14 +157,14 @@ func (self *Gitea) getIssues(com bool, withclose bool) ([]iIssue, error) {
 	var p int = 1
 	var ret []iIssue
 	for {
-		u := url + "&page=" + fmt.Sprintf("%v",p)
+		u := url + "&page=" + msg.NewStr("%v",p)
 		bret, rcode, err := self.reqHttp("GET", u, nil)
 		if err != nil {
 			return nil, err
 		}
 		if rcode != 200 {
-			fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-			return nil, nil
+			err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+			return nil, err
 		}
 
 		var iss []iIssue
@@ -180,7 +178,7 @@ func (self *Gitea) getIssues(com bool, withclose bool) ([]iIssue, error) {
 		for _, v := range iss {
 			if com {
 				var err error
-				v, err = self.getIssue(fmt.Sprintf("%v", v.Num))
+				v, err = self.getIssue(msg.NewStr("%v", v.Num))
 				if err != nil {
 					return ret, err
 				}
@@ -205,35 +203,34 @@ func (self *Gitea) GetIssue(num string) (issue.Issue, error) {
 }
 
 func (self *Gitea) getIssue(num string) (iIssue, error) {
-	var is iIssue
-
 	iurl := self.url + "api/v1/repos/" + self.repository + "/issues/" + num
 	curl := iurl + "/comments"
 
 	iret, rcode, err := self.reqHttp("GET", iurl, nil)
 	if err != nil {
-		return is, err
+		return iIssue{}, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return is, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return iIssue{}, err
 	}
 	cret, rcode, err := self.reqHttp("GET", curl, nil)
 	if err != nil {
-		return is, err
+		return iIssue{}, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return is, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return iIssue{}, err
 	}
 
+	var is iIssue
 	if err := json.Unmarshal(iret, &is); err != nil {
-		return is, err
+		return iIssue{}, err
 	}
 
 	var coms []iIComment
 	if err := json.Unmarshal(cret, &coms); err != nil {
-		return is, err
+		return iIssue{}, err
 	}
 	for _, com := range coms {
 		is.Comments = append(is.Comments, com)
@@ -303,8 +300,8 @@ func (self *Gitea) updateMilestone(inum string, mlname string) error {
 		return err
 	}
 	if len(mls) < 1 {
-		fmt.Printf("undefined milestonename : %s\n", mlname)
-		return nil
+		err := msg.NewErr("undefined milestonename : %s\n", mlname)
+		return err
 	}
 
 	if err := self.httpReqMilestone("PATCH", inum, mls[0]); err != nil {
@@ -391,8 +388,8 @@ func (self *Gitea) AddLabel(inum string, lbname string) error {
 		return err
 	}
 	if len(lbs) != 1 {
-		fmt.Printf("undefined choose labelname. : %s\n", lbname)
-		return nil
+		err := msg.NewErr("undefined choose labelname. : %s\n", lbname)
+		return err
 	}
 
 	if err := self.addLabel(inum, lbs[0]); err != nil {
@@ -414,8 +411,8 @@ func (self *Gitea) DelLabel(inum string, lbname string) error {
 		return err
 	}
 	if len(lbs) != 1 {
-		fmt.Printf("undefined choose labelname. : %s\n", lbname)
-		return nil
+		err := msg.NewErr("undefined choose labelname. : %s\n", lbname)
+		return err
 	}
 
 	if err := self.delLabel(inum, lbs[0]); err != nil {
@@ -461,20 +458,20 @@ func (self *Gitea) doOpenIssue(inum string) error {
 
 func (self *Gitea) toggleIssueState(inum string, state string) error {
 	if state != "open" && state != "closed" {
-		fmt.Printf("unknown state :%s\n", state)
-		return nil
+		err := msg.NewErr("unknown state :%s\n", state)
+		return err
 	}
 	is, err := self.getIssue(inum)
 	if err != nil {
 		return err
 	}
 	if is.State == "" {
-		fmt.Printf("undefined ticket: %s\n", inum)
-		return nil
+		err := msg.NewErr("undefined ticket: %s\n", inum)
+		return err
 	}
 	if is.State == state {
-		fmt.Printf("this issue already state : %s\n", state)
-		return nil
+		err := msg.NewErr("this issue already state : %s\n", state)
+		return err
 	}
 
 	old := is.Update
@@ -484,11 +481,10 @@ func (self *Gitea) toggleIssueState(inum string, state string) error {
 		return err
 	}
 	if old == is.Update {
-		fmt.Printf("not update\n")
-		return nil
+		err := msg.NewErr("not update\n")
+		return err
 	}
 
-	fmt.Printf("state updated : %s\n", is.State)
 	return nil
 }
 
@@ -508,8 +504,8 @@ func (self *Gitea) httpGetMilestones() ([]byte, error) {
 		return nil, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, err
 	}
 	return bret, nil
 }
@@ -522,8 +518,8 @@ func (self *Gitea) httpGetLabel() ([]byte, error) {
 		return nil, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, err
 	}
 	return bret, nil
 }
@@ -531,7 +527,7 @@ func (self *Gitea) httpGetLabel() ([]byte, error) {
 func (self *Gitea) httpReqMilestone(method string , inum string, ml iIMilestone) error {
 	url := self.url + "api/v1/repos/" + self.repository + "/issues/" + inum
 
-	id := fmt.Sprintf("%v", ml.Id)
+	id := msg.NewStr("%v", ml.Id)
 	json_str := `{"milestone":` + id + ` }`
 
 	_, rcode, err := self.reqHttp(method, url, []byte(json_str))
@@ -539,8 +535,8 @@ func (self *Gitea) httpReqMilestone(method string , inum string, ml iIMilestone)
 		return err
 	}
 	if rcode != 201 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return err
 	}
 	return nil
 }
@@ -548,7 +544,7 @@ func (self *Gitea) httpReqMilestone(method string , inum string, ml iIMilestone)
 func (self *Gitea) httpReqLabel(method string , inum string, lb iILabel) error {
 	url := self.url + "api/v1/repos/" + self.repository +
 						"/issues/" + inum + "/labels"
-	id := fmt.Sprintf("%v", lb.Id)
+	id := msg.NewStr("%v", lb.Id)
 	json_str := `{"labels":[`+ id + `]}`
 
 	if method == "DELETE" {
@@ -561,8 +557,8 @@ func (self *Gitea) httpReqLabel(method string , inum string, lb iILabel) error {
 		return err
 	}
 	if rcode != 200 && rcode != 204 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return err
 	}
 	return nil
 }
@@ -576,17 +572,16 @@ func (self *Gitea) httpReqComment(method string , inum string, body string) erro
 		return err
 	}
 	if rcode != 201 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return err
 	}
-	fmt.Printf("comment added : #%v\n", inum)
 	return nil
 }
 
 func (self *Gitea) httpReqIssue(method string, ise *iIssueE) error {
 	url := self.url + "api/v1/repos/" + self.repository + "/issues/"
 	if ise.Num != 0 {
-		url += fmt.Sprintf("%v", ise.Num)
+		url += msg.NewStr("%v", ise.Num)
 	}
 
 	ise.Update = time.Now()
@@ -599,14 +594,13 @@ func (self *Gitea) httpReqIssue(method string, ise *iIssueE) error {
 		return err
 	}
 	if rcode != 201 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return err
 	}
 
 	if err := json.Unmarshal(iret, &ise); err != nil {
 		return err
 	}
-	fmt.Printf("issue posted : #%v\n",ise.Num)
 	return nil
 }
 
@@ -637,120 +631,7 @@ func (self *Gitea) reqHttp(method, url string, param []byte ) ([]byte,
 	}
 	return bytes, resp.StatusCode, nil
 }
-/*
-func (self *Gitea) Login(username, passwd string) error {
-	return self.login(username, passwd)
-}
 
-func (self *Gitea) login(username, passwd string) error {
-	curtoken, err := self.getDefinedToken(username, passwd)
-	if err != nil {
-		return err
-	}
-	if curtoken != "" {
-		self.Token = curtoken
-		self.User = username
-		fmt.Printf("Login success !!\n")
-		return nil
-	}
-
-	newtoken, err := self.createReqToken(username, passwd)
-	if err != nil {
-		return err
-	}
-	if newtoken != "" {
-		self.Token = newtoken
-		self.User = username
-		fmt.Printf("Login success !!\n")
-		return nil
-	}
-
-	if !self.isLogined() {
-		fmt.Printf("Login Failed...\n")
-	}
-	return nil
-}
-
-func (self *Gitea) getDefinedToken(username, passwd string) (string, error) {
-	url := self.Url + "api/v1/users/" + username + "/tokens"
-	req, err := http.NewRequest(
-		"GET",
-		url,
-		nil,
-	)
-	req.SetBasicAuth(username, passwd)
-
-	client, err := newClient()
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-       		return "", err
-    	}
-    	defer resp.Body.Close()
-
-	var token string
-	var jtokens []JsonToken
-	bytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	if err := json.Unmarshal(bytes, &jtokens); err != nil {
-		return "", err
-	}
-	for _, t := range jtokens {
-		if TokenName == t.Name {
-			token = t.Sha1
-			break
-		}
-	}
-	return token, nil
-}
-
-func (self *Gitea) createReqToken(username, passwd string) (string, error) {
-	url := self.Url + "api/v1/users/" + username + "/tokens"
-	json_str := `{"name":"`+ TokenName + `"}`
-    	req, err := http.NewRequest(
-        	"POST",
-        	url,
-        	bytes.NewBuffer([]byte(json_str)),
-    	)
-	req.SetBasicAuth(username, passwd)
-	req.Header.Set("Content-Type", "application/json")
-
-	client, err := newClient()
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-       		return "", err
-    	}
-    	defer resp.Body.Close()
-
-	var token string
-	var jtoken JsonToken
-	bytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	if err := json.Unmarshal(bytes, &jtoken); err != nil {
-		return "", err
-	}
-	if TokenName == jtoken.Name {
-		token = jtoken.Sha1
-	}
-	return token, nil
-}
-var TokenName string = "giss"
-type JsonToken struct {
-	Name string `json:"name"`
-	Sha1 string `json:"sha1"`
-}
-*/
 func iIssue2Issue(is iIssue) issue.Issue {
 	var nis issue.Issue
 

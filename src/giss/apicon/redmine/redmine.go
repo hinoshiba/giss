@@ -1,13 +1,13 @@
 package redmine
 
 import (
-	"fmt"
 	"time"
 	"bytes"
 	"strings"
 	"net/http"
 	"io/ioutil"
 	"encoding/xml"
+	"giss/msg"
 	"giss/apicon/httpcl"
 	"giss/apicon/issue"
 )
@@ -124,11 +124,9 @@ func (self *Redmine) IsLogined() bool {
 
 func (self *Redmine) isLogined() bool {
 	if self.token == "" {
-		fmt.Printf("not login\n")
 		return false
 	}
 	if self.user == "" {
-		fmt.Printf("not login\n")
 		return false
 	}
 	return true
@@ -149,8 +147,7 @@ func (self *Redmine) GetIssues(com bool, withclose bool) ([]issue.Issue, error) 
 }
 
 func (self *Redmine) DeleteMilestone(inum string) error {
-	fmt.Printf("can't delete milestone(tracker) at the redmine\n")
-	return nil
+	return msg.NewErr("can't delete milestone(tracker) at the redmine\n")
 }
 
 func (self *Redmine) UpdateMilestone(inum string, mlname string) error {
@@ -169,14 +166,13 @@ func (self *Redmine) updateTracker(inum string, trname string) error {
 		return err
 	}
 	if len(trs) < 1 {
-		fmt.Printf("undefined name : %s\n", trname)
-		return nil
+		err := msg.NewErr("undefined name : %s\n", trname)
+		return err
 	}
 	etk.TrackerId = trs[0].Id
 	if err := self.updatePostIssue(&etk); err != nil {
 		return err
 	}
-	fmt.Printf("Update tracker #%s : %s -> %s\n",inum, tk.Tracker.Name, trs[0].Name)
 	return nil
 }
 
@@ -273,7 +269,6 @@ func (self *Redmine) getCategories(target string) ([]iCategory, error){
 }
 
 func (self *Redmine) AddLabel(inum string, lb string) error {
-	fmt.Printf("overwrite label(category)\n")
 	return self.modCategory(inum, lb)
 }
 
@@ -289,14 +284,13 @@ func (self *Redmine) modCategory(inum string, ctname string) error {
 		return err
 	}
 	if len(cts) < 1 {
-		fmt.Printf("undefined name : %s\n", ctname)
-		return nil
+		err := msg.NewErr("undefined name : %s\n", ctname)
+		return err
 	}
 	etk.CategoryId = cts[0].Id
 	if err := self.updatePostIssue(&etk); err != nil {
 		return err
 	}
-	fmt.Printf("Updated category #%s : %s -> %s\n",inum, tk.Category.Name, cts[0].Name)
 	return nil
 }
 
@@ -310,8 +304,8 @@ func (self *Redmine) delCategory(inum string, ctname string) error {
 		return err
 	}
 	if tk.Category.Name != ctname {
-		fmt.Printf("hasn't category\n")
-		return nil
+		err := msg.NewErr("hasn't category\n")
+		return err
 	}
 	etk := ticket2TicketE(tk)
 
@@ -319,7 +313,6 @@ func (self *Redmine) delCategory(inum string, ctname string) error {
 	if err := self.updatePostIssue(&etk); err != nil {
 		return err
 	}
-	fmt.Printf("Deleted category #%s : %s \n",inum, tk.Category.Name)
 	return nil
 }
 
@@ -337,23 +330,22 @@ func (self *Redmine) getIssues(com, withclose bool) ([]Ticket, error) {
 	}
 	for {
 		offset := p * 100
-		u := url + "&offset=" + fmt.Sprintf("%v", offset)
+		u := url + "&offset=" + msg.NewStr("%v", offset)
 		p++
 		limit := p * 100
-		u += "&limit=" + fmt.Sprintf("%v", limit)
+		u += "&limit=" + msg.NewStr("%v", limit)
 
 		bret, rcode, err := self.reqHttp("GET", u, nil)
 		if err != nil {
 			return nil, err
 		}
 		if rcode != 200 {
-			fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-			return nil, nil
+			err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+			return nil, err
 		}
 
 		var tks tickets
 		if err := xml.Unmarshal(bret, &tks); err != nil {
-			fmt.Printf("%s", err)
 			return nil, err
 		}
 		if len(tks.Tk) < 1 {
@@ -362,7 +354,7 @@ func (self *Redmine) getIssues(com, withclose bool) ([]Ticket, error) {
 		for _, v := range tks.Tk {
 			if com {
 				var err error
-				v, err = self.getIssue(fmt.Sprintf("%v", v.Id))
+				v, err = self.getIssue(msg.NewStr("%v", v.Id))
 				if err != nil {
 					return nil, err
 				}
@@ -386,21 +378,21 @@ func (self *Redmine) GetIssue(num string) (issue.Issue, error) {
 }
 
 func (self *Redmine) getIssue(num string) (Ticket, error) {
-	var tk Ticket
 	iurl := self.url + "/issues/" +
 				num + ".xml?include=attachments,journals"
 
 	tret, rcode, err := self.reqHttp("GET", iurl, nil)
 	if err != nil {
-		return tk, err
+		return Ticket{}, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return tk, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return Ticket{}, err
 	}
 
+	var tk Ticket
 	if err := xml.Unmarshal(tret, &tk); err != nil {
-		return tk, err
+		return Ticket{}, err
 	}
 	return tk, nil
 }
@@ -480,8 +472,8 @@ func (self *Redmine) getStateId() (int64, int64, error) {
 		return 0, 0, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return 0, 0, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return 0, 0, err
 	}
 
 	type state struct {
@@ -534,12 +526,12 @@ func (self *Redmine) toggleIssueState(inum string, state string) error {
 		return err
 	}
 	if tk.Status.Name == "" {
-		fmt.Printf("undefined ticket: %s\n", inum)
-		return nil
+		err := msg.NewErr("undefined ticket: %s\n", inum)
+		return err
 	}
 	if tk.Status.Id == targetId {
-		fmt.Printf("this issue already state : %s\n", state)
-		return nil
+		err := msg.NewErr("this issue already state : %s\n", state)
+		return err
 	}
 
 	etk := ticket2TicketE(tk)
@@ -553,11 +545,10 @@ func (self *Redmine) toggleIssueState(inum string, state string) error {
 		return err
 	}
 	if tk.Status.Name == ntk.Status.Name {
-		fmt.Printf("not update\n")
-		return nil
+		err := msg.NewErr("not update\n")
+		return err
 	}
 
-	fmt.Printf("state updated : %s\n", ntk.Status.Name)
 	return nil
 }
 
@@ -577,8 +568,8 @@ func (self *Redmine) httpReqCategories() ([]byte, error) {
 		return nil, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, err
 	}
 	return bret, nil
 }
@@ -591,8 +582,8 @@ func (self *Redmine) httpReqTrackers() ([]byte, error) {
 		return nil, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, err
 	}
 	return bret, nil
 }
@@ -606,11 +597,9 @@ func (self *Redmine) httpReqComment(method string , inum string, body string) er
 		return err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return err
 	}
-
-	fmt.Printf("comment added : #%v\n", inum)
 	return nil
 }
 
@@ -618,7 +607,7 @@ func (self *Redmine) httpReqIssue(method string, etk *TicketE) error {
 	url := self.url + "/projects/" + self.repository + "/issues.xml"
 	if etk.Id != 0 {
 		url = self.url + "/issues/" +
-				fmt.Sprintf("%v", etk.Id) + ".xml"
+				msg.NewStr("%v", etk.Id) + ".xml"
 	}
 
 	txml, err := xml.Marshal(*etk)
@@ -630,8 +619,8 @@ func (self *Redmine) httpReqIssue(method string, etk *TicketE) error {
 		return err
 	}
 	if rcode != 200 && rcode != 201 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return err
 	}
 
 	if rcode == 201 {
@@ -639,7 +628,6 @@ func (self *Redmine) httpReqIssue(method string, etk *TicketE) error {
 			return err
 		}
 	}
-	fmt.Printf("issue posted : #%v\n", etk.Id)
 	return nil
 }
 

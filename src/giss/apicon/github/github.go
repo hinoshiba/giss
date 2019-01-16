@@ -1,12 +1,12 @@
 package github
 
 import (
-	"fmt"
 	"time"
 	"bytes"
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"giss/msg"
 	"giss/apicon/httpcl"
 	"giss/apicon/issue"
 )
@@ -129,11 +129,9 @@ func (self *Github) IsLogined() bool {
 
 func (self *Github) isLogined() bool {
 	if self.token == "" {
-		fmt.Printf("not login\n")
 		return false
 	}
 	if self.user == "" {
-		fmt.Printf("not login\n")
 		return false
 	}
 	return true
@@ -162,14 +160,14 @@ func (self *Github) getIssues(com bool, withclose bool) ([]iIssue, error) {
 	var ret []iIssue
 	local, _ := time.LoadLocation("Local")
 	for {
-		u := url + "&page=" + fmt.Sprintf("%v",p)
+		u := url + "&page=" + msg.NewStr("%v",p)
 		bret, rcode, err := self.reqHttp("GET", u, nil)
 		if err != nil {
 			return nil, err
 		}
 		if rcode != 200 {
-			fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-			return nil, nil
+			err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+			return nil, err
 		}
 
 		var iss []iIssue
@@ -183,9 +181,9 @@ func (self *Github) getIssues(com bool, withclose bool) ([]iIssue, error) {
 		for _, v := range iss {
 			if com {
 				var err error
-				v, err = self.getIssue(fmt.Sprintf("%v", v.Num))
+				v, err = self.getIssue(msg.NewStr("%v", v.Num))
 				if err != nil {
-					return ret, err
+					return []iIssue{}, err
 				}
 			}
 			v.Update = v.Update.In(local)
@@ -208,35 +206,34 @@ func (self *Github) GetIssue(num string) (issue.Issue, error) {
 }
 
 func (self *Github) getIssue(num string) (iIssue, error) {
-	var is iIssue
-
 	iurl := self.url + "repos/" + self.repository + "/issues/" + num
 	curl := iurl + "/comments"
 
 	iret, rcode, err := self.reqHttp("GET", iurl, nil)
 	if err != nil {
-		return is, err
+		return iIssue{}, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return is, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return iIssue{}, err
 	}
 	cret, rcode, err := self.reqHttp("GET", curl, nil)
 	if err != nil {
-		return is, err
+		return iIssue{}, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return is, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return iIssue{}, err
 	}
 
+	var is iIssue
 	if err := json.Unmarshal(iret, &is); err != nil {
-		return is, err
+		return iIssue{}, err
 	}
 
 	var coms []iIComment
 	if err := json.Unmarshal(cret, &coms); err != nil {
-		return is, err
+		return iIssue{}, err
 	}
 
 	local, _ := time.LoadLocation("Local")
@@ -317,20 +314,20 @@ func (self *Github) doOpenIssue(inum string) error {
 
 func (self *Github) toggleIssueState(inum string, state string) error {
 	if state != "open" && state != "closed" {
-		fmt.Printf("unknown state :%s\n", state)
-		return nil
+		err := msg.NewErr("unknown state :%s\n", state)
+		return err
 	}
 	is, err := self.getIssue(inum)
 	if err != nil {
 		return err
 	}
 	if is.State == "" {
-		fmt.Printf("undefined ticket: %s\n", inum)
-		return nil
+		err := msg.NewErr("undefined ticket: %s\n", inum)
+		return err
 	}
 	if is.State == state {
-		fmt.Printf("this issue already state : %s\n", state)
-		return nil
+		err := msg.NewErr("this issue already state : %s\n", state)
+		return err
 	}
 
 	is.State = state
@@ -340,11 +337,9 @@ func (self *Github) toggleIssueState(inum string, state string) error {
 		return err
 	}
 	if nis.Update == is.Update {
-		fmt.Printf("not update\n")
-		return nil
+		err := msg.NewErr("not update\n")
+		return err
 	}
-
-	fmt.Printf("state updated : %s\n", nis.State)
 	return nil
 }
 
@@ -364,8 +359,6 @@ func (self *Github) deleteMilestone(inum string) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("deleted milestone #%s : %s\n", inum, is.Milestone.Title)
 	return nil
 }
 
@@ -379,8 +372,8 @@ func (self *Github) updateMilestone(inum string, mlname string) error {
 		return err
 	}
 	if len(mls) < 1 {
-		fmt.Printf("undefined milestonename : %s\n", mlname)
-		return nil
+		err := msg.NewErr("undefined milestonename : %s\n", mlname)
+		return err
 	}
 
 	is, err := self.getIssue(inum)
@@ -389,13 +382,11 @@ func (self *Github) updateMilestone(inum string, mlname string) error {
 	}
 	eis := iIssue2iIssueE(is)
 
-	eis.MilestoneId = fmt.Sprintf("%v", mls[0].Num)
-	nis, err := self.updatePostIssue(&eis)
+	eis.MilestoneId = msg.NewStr("%v", mls[0].Num)
+	_, err = self.updatePostIssue(&eis)
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("updated milestone #%s : %s -> %s\n", inum, is.Milestone.Title, nis.Milestone.Title)
 	return nil
 }
 
@@ -478,8 +469,8 @@ func (self *Github) addLabel(inum string, lbname string) error {
 		return err
 	}
 	if len(lbs) < 1 {
-		fmt.Printf("undefined label : %s\n", lbname)
-		return nil
+		err := msg.NewErr("undefined label : %s\n", lbname)
+		return err
 	}
 
 	is, err := self.getIssue(inum)
@@ -506,8 +497,8 @@ func (self *Github) delLabel(inum string, lbname string) error {
 		return err
 	}
 	if len(lbs) < 1 {
-		fmt.Printf("undefined label : %s\n", lbname)
-		return nil
+		err := msg.NewErr("undefined label : %s\n", lbname)
+		return err
 	}
 
 	is, err := self.getIssue(inum)
@@ -539,8 +530,8 @@ func (self *Github) httpGetLabel() ([]byte, error) {
 		return nil, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, err
 	}
 	return bret, nil
 }
@@ -553,8 +544,8 @@ func (self *Github) httpGetMilestones() ([]byte, error) {
 		return nil, err
 	}
 	if rcode != 200 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return nil, err
 	}
 	return bret, nil
 }
@@ -576,10 +567,9 @@ func (self *Github) httpReqComment(method string , inum string, body string) err
 		return err
 	}
 	if rcode != 201 {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return err
 	}
-	fmt.Printf("comment added : #%v\n", inum)
 	return nil
 }
 
@@ -588,7 +578,7 @@ func (self *Github) httpIssue(method string, ise *iIssueE) (iIssue, error) {
 
 	retcode := 201
 	if ise.Num != 0 {
-		url += "/" + fmt.Sprintf("%v", ise.Num)
+		url += "/" + msg.NewStr("%v", ise.Num)
 		retcode = 200
 	}
 
@@ -597,21 +587,19 @@ func (self *Github) httpIssue(method string, ise *iIssueE) (iIssue, error) {
 	if err != nil {
 		return iIssue{}, err
 	}
-	fmt.Printf("%s\n", ijson)
 	iret, rcode, err := self.reqHttp(method, url, []byte(ijson))
 	if err != nil {
 		return iIssue{}, err
 	}
 	if rcode != retcode {
-		fmt.Printf("detect exceptional response. httpcode:%v\n", rcode)
-		return iIssue{}, nil
+		err := msg.NewErr("detect exceptional response. httpcode:%v\n", rcode)
+		return iIssue{}, err
 	}
 
 	var is iIssue
 	if err := json.Unmarshal(iret, &is); err != nil {
 		return iIssue{}, err
 	}
-	fmt.Printf("issue posted : #%v\n",ise.Num)
 	return is, nil
 }
 

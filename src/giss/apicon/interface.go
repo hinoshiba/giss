@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 	"bufio"
-	"errors"
 	"strings"
 	"giss/conf"
+	"giss/msg"
 	"giss/apicon/issue"
 	"giss/apicon/gitea"
 	"giss/apicon/github"
@@ -60,7 +60,7 @@ func NewApicon(rc conf.Conf, alias string) (Apicon, error) {
 			ret = &obj
 	}
 	if ret == nil {
-		err := errors.New(fmt.Sprintf("selected unknown api type : %s",alias))
+		err := msg.NewErr("selected unknown api type : %s",alias)
 		return ret, err
 	}
 	return ret, nil
@@ -230,12 +230,12 @@ func reportIssue(git Apicon, newtag time.Time, is *issue.Issue) (string, error) 
 	if is.State.Name == "closed" {
 		ir += "[closed] "
 	}
-	ir += fmt.Sprintf("#%v ",is.Num) + lf2space(onlyLF(is.Title)) + "\n"
+	ir += msg.NewStr("#%v ",is.Num) + lf2space(onlyLF(is.Title)) + "\n"
 	for _, row := range strings.Split(onlyLF(is.Body),"\n") {
 		ir += makeWithin80c(false,6 ,row)
 	}
 
-	nis, err := git.GetIssue(fmt.Sprintf("%v",is.Num))
+	nis, err := git.GetIssue(msg.NewStr("%v",is.Num))
 	if err != nil {
 		return "", err
 	}
