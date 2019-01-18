@@ -4,6 +4,7 @@ import (
 	"github.com/hinoshiba/goctx"
 	"github.com/hinoshiba/termwindow"
 	"giss/apicon/issue"
+	"giss/apicon"
 	"giss/values"
 	"giss/msg"
 	"strings"
@@ -34,11 +35,15 @@ func termMenu(wk goctx.Worker) {
 	startmsg.Data.Body = str0d0a2bytearr(values.StartTerm)
 	termBody(wk.NewWorker(), startmsg)
 
+	termwindow.SetMsg("connect to %s/%s",
+		Apicon.GetUrl(), Apicon.GetRepositoryName())
 	winiss, err := termLs(false)
 	if err != nil {
 		termwindow.SetErr(err)
 	}
 	termwindow.SetMenu(winiss.Data)
+	termwindow.SetMsg("pulled issues")
+
 	var closed_print = false
 
 	for {
@@ -46,11 +51,14 @@ func termMenu(wk goctx.Worker) {
 		case <-wk.RecvCancel():
 			return
 		case  ev := <-termwindow.Key:
+			termwindow.SetMsg("")
 			switch ev.Key {
 			case termwindow.KeyCtrlN:
 				termwindow.SetActiveLine(winiss.MvInc())
+				continue
 			case termwindow.KeyCtrlP:
 				termwindow.SetActiveLine(winiss.MvDec())
+				continue
 			case termwindow.KeySpace:
 				if closed_print {
 					closed_print = false
@@ -59,6 +67,7 @@ func termMenu(wk goctx.Worker) {
 				}
 				closed_print = true
 				termwindow.SetMsg("print with closed.")
+				continue
 			case termwindow.KeyEnter:
 				id, v := winiss.GetData(winiss.Active)
 				if len(v) < 0 {
@@ -74,13 +83,13 @@ func termMenu(wk goctx.Worker) {
 				termBody(wk.NewWorker(), is)
 				termwindow.SetMsg("closed #%v", id)
 				termwindow.ReFlush()
+				continue
 			}
 			switch ev.Ch {
 			case '?':
 				var help termwindow.Window
 				help.SetTitle("help window")
 				help.Data.Body = str0d0a2bytearr(values.HelpTerm)
-				termwindow.SetMsg("help")
 				termBody(wk.NewWorker(), help)
 				termwindow.ReFlush()
 			case '$':
@@ -175,6 +184,23 @@ func termMenu(wk goctx.Worker) {
 				}
 				termwindow.SetMsg("a possibility that it was updated. Please enter '$'.")
 				termwindow.ReFlush()
+			case '/':
+				napicon, err := termCheckin(wk.NewWorker())
+				if err != nil {
+					termwindow.SetErr(err)
+					termwindow.SetMenu(winiss.Data)
+					continue
+				}
+
+				termwindow.SetMsg("connect to %s/%s",
+					napicon.GetUrl(), napicon.GetRepositoryName())
+				Apicon = napicon
+				winiss, err = termLs(closed_print)
+				if err != nil {
+					termwindow.SetErr(err)
+				}
+				termwindow.SetMenu(winiss.Data)
+				termwindow.SetMsg("checkined %s, pulled issues.", napicon.GetRepositoryName())
 			case 'q':
 				wk.Cancel()
 				return
@@ -317,6 +343,9 @@ func termLabel(wk goctx.Worker, id string) error {
 						continue
 					}
 				}
+
+				termwindow.SetMsg("connect to %s/%s",
+					Apicon.GetUrl(), Apicon.GetRepositoryName())
 				var err error
 				lbs, err = getActiveLabels(id)
 				if err != nil {
@@ -327,6 +356,7 @@ func termLabel(wk goctx.Worker, id string) error {
 					return err
 				}
 				termwindow.SetBody(win.Data)
+				termwindow.SetMsg("changed the status at label '%s' in this issue", lb)
 			}
 			switch ev.Ch {
 			case 'j':
@@ -387,8 +417,11 @@ func termMilestone(wk goctx.Worker, id string) error {
 						continue
 					}
 				}
-				var err error
+
+				termwindow.SetMsg("connect to %s/%s",
+					Apicon.GetUrl(), Apicon.GetRepositoryName())
 				mlname, err = getActiveMilestone(id)
+				var err error
 				if err != nil {
 					return err
 				}
@@ -397,6 +430,7 @@ func termMilestone(wk goctx.Worker, id string) error {
 					return err
 				}
 				termwindow.SetBody(win.Data)
+				termwindow.SetMsg("changed the status at milestone '%s' in this issue", nml)
 			}
 			switch ev.Ch {
 			case 'j':
@@ -447,6 +481,86 @@ func termBody(wk goctx.Worker, is termwindow.Window) {
 	}
 }
 
+func termCheckin(wk goctx.Worker) (apicon.Apicon, error) {
+	defer wk.Done()
+
+	var server termwindow.Window
+	server.SetTitle("select and <enter> you want to use server name.")
+	for alias, sv := range Conf.Server {
+		server.Append(alias, []byte(msg.NewStr("%s : [%s] %s\n", alias, sv.User, sv.Url)))
+	}
+	alias, err := termSelect(wk.NewWorker(), server)
+	if err != nil {
+		return nil, err
+	}
+	if alias == "" {
+		return nil, msg.NewErr("empty server alias")
+	}
+
+	var repo termwindow.Window
+	repo.SetTitle("select and <enter> you want to use repository name.")
+	for _, rpname := range Conf.Server[alias].Repos {
+		repo.Append(rpname, []byte(rpname))
+	}
+	rpname, err := termSelect(wk.NewWorker(), repo)
+	if err != nil {
+		return nil, err
+	}
+	if rpname == "" {
+		return nil, msg.NewErr("empty repository name")
+	}
+
+	napicon, err := apicon.NewApicon(Conf, alias)
+	if err != nil {
+		return nil, err
+	}
+	napicon.SetUsername(Conf.Server[alias].User)
+	napicon.SetToken(Conf.Server[alias].Token)
+	napicon.SetRepositoryName(rpname)
+	napicon.SetUrl(Conf.Server[alias].Url)
+	return napicon, nil
+}
+
+func termSelect(wk goctx.Worker, win termwindow.Window) (string, error){
+	defer wk.Done()
+
+	termwindow.SetMenu(win.Data)
+	defer termwindow.UnsetBody()
+	for {
+		select {
+		case <-wk.RecvCancel():
+			return "", nil
+		case  ev := <-termwindow.Key:
+			switch ev.Key {
+			case termwindow.KeyCtrlN:
+				termwindow.SetActiveLine(win.MvInc())
+			case termwindow.KeyCtrlP:
+				termwindow.SetActiveLine(win.MvDec())
+			case termwindow.KeyEnter:
+				id, _ := win.GetData(win.Active)
+				if len(id) < 0 {
+					termwindow.SetMsg("target not found")
+					continue
+				}
+				return id, nil
+			}
+			switch ev.Ch {
+			case 'j':
+				termwindow.SetActiveLine(win.MvInc())
+			case 'k':
+				termwindow.SetActiveLine(win.MvDec())
+			case 'G':
+				termwindow.SetActiveLine(win.MvBottom())
+			case 'g':
+				termwindow.SetActiveLine(win.MvTop())
+			case 'q':
+				return "", nil
+			}
+		}
+	}
+	return "", nil
+}
+
 func inputRecode(wk goctx.Worker, title string) string {
 	defer wk.Done()
 
@@ -462,13 +576,13 @@ func inputRecode(wk goctx.Worker, title string) string {
 				return buf
 			case termwindow.KeyBackspace2:
 				rbuf := []rune(buf)
-				if len(rbuf) > 1 {
+				if len(rbuf) > 0 {
 					buf = string(rbuf[:(len(rbuf) - 1)])
 				}
 				continue
 			case termwindow.KeyBackspace:
 				rbuf := []rune(buf)
-				if len(rbuf) > 1 {
+				if len(rbuf) > 0 {
 					buf = string(rbuf[:(len(rbuf) - 1)])
 				}
 				continue
