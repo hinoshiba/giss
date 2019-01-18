@@ -4,29 +4,24 @@
 * I aim to use various issues management systems with the same operation.
 
 ## giss term demo
-![demo](https://raw.githubusercontent.com/wiki/hinoshiba/giss/img/demo.gif | width=320)
+<img src="https://raw.githubusercontent.com/wiki/hinoshiba/giss/img/demo.gif" width="620" />
 
+## Supported services (type)
 
-## Supported services(対応中のサービス)
-
-* Github
-	* Type parameter is 'Github'
-* Github Enterprise
-	* Type parameter is 'Github'
-* Gitea
-	* Type parameter is 'Gitea'
-* Redmine
-	* Type parameter is 'Redmine'
-
+* Github (Github)
+* Github Enterprise (Github)
+* Gitea (Gitea)
+* Redmine (Redmine)
 
 ---
 
 ## how to setup
 
-1. download at the `thisrepository/bin/'YourExecutableFile'`(このリポジトリの`bin/あなたの実行形式`をダウンロードしてください)
-2. Create a setting file in `~/.gissrc`(`~/.gissrc`ファイルを作成してください)
-	* please check to : `sample/.gissrc`(`sample/.gissrc` を確認してください)
-3. Type '`giss checkin`' and press the Enter key('`giss checkin`'を入力し、実行してください
+1. download at [releases](https://github.com/hinoshiba/giss/releases)
+2. create a `~/.gissrc`
+	* please check to : `sample/.gissrc`
+3. type to '`giss checkin`' and press the Enter key
+4. enjoy :)
 
 ---
 
@@ -88,14 +83,13 @@ state updated : closed
 # other
 
 ## Redmine
-* The Redmine is transforming expressions.(redmineは表現を変換しています。)
+* The Redmine is transforming expressions.
 	* A 'Category' is 'Label'
 	* A 'Tracker' is 'Milestone'
 	* A 'Project' is 'Repository'
 * For each status ('closed' and 'open'), automatically obtain and automatically input the top of the GUI setting.
-* (各ステータス（'closed' と 'open'）については、GUI設定の先頭を自動的に取得して自動的に入力します。)
 
-## Services you want to respond to...(対応したいサービス)
+## Services you want to respond to...
 
 * Gitlab
 * Gogs
