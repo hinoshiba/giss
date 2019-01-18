@@ -49,6 +49,7 @@ Advance operation
 					 - label, milestone can not be imported depending on the situation.
 						-a         : with export the closed issues.
 						<type>     : json, xml.
+ term					(beta Function) start giss termwindow mode.
 
 ---------------------------------------------------------
 
@@ -88,6 +89,8 @@ var HelpTerm string = `Basic operation
  g                      move to top.
 
 issue list operation
+ /                      change the connection destination.
+                          select the connection destination in the contents of "~/.gissrc"
  $                      connect to the server and get the latest issues.
  <Eneter>               display the issue detail at current line.
  n                      create new issue.
