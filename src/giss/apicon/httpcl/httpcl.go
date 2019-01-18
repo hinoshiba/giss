@@ -1,30 +1,21 @@
 package httpcl
 
 import (
-	"os"
-	"net/url"
+	"time"
 	"net/http"
+	"net"
 	"crypto/tls"
 )
 
 func NewClient() (*http.Client, error) {
-	http_proxy := os.Getenv("http_proxy")
-	if http_proxy == "" {
-		http_proxy = os.Getenv("https_proxy")
-	}
-	if http_proxy != "" {
-		proxy, err := url.Parse(http_proxy)
-		if err != nil {
-			return nil, err
-		}
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
-			Proxy: http.ProxyURL(proxy),
-		}
-		return &http.Client{Transport: tr}, nil
-	}
 	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
+		TLSHandshakeTimeout: 10 * time.Second,
+		Dial: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 10 * time.Second,
+		}).Dial,
 	}
 	return &http.Client{Transport: tr}, nil
 }
