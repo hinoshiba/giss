@@ -40,7 +40,7 @@ Labels operation
  lbdel <issue No> <label name>		Delete to the label at selected issue.
 
 Advance operation
- repo					(beta Function) A mail is automatically generated in which addresses, headers, etc. are automatically inserted.
+ repo					(beta Function) weekly report.
  export [-a] <type>			(beta Function) export all of the issues at stdout.
 						-a         : with export the closed issues.
 						<type>     : json, xml.

@@ -7,7 +7,6 @@ import (
 	"time"
 	"bufio"
 	"strings"
-	"giss/mail"
 	"giss/cache"
 	"giss/apicon"
 	"giss/values"
@@ -88,28 +87,8 @@ func ComReport() error {
 	}
 	report_str += Conf.Report.Futter
 	subject := Conf.Mail.Subject + " " + date_7ago + " - " + date_now
-	if !RepoAutosend {
-		fmt.Printf("Preview, Need -m to sending.\n\n======\n%s",subject)
-		fmt.Printf("\n+++++++++++++++++++++++++++++++++\n%s",report_str)
-		return nil
-	}
-
-
-	var smtp mail.Smtp
-	err := smtp.New(Conf.Mail.Mta, Conf.Mail.Port, Conf.Mail.From)
-	if err != nil {
-		return err
-	}
-
-	err = smtp.MakeMail(Conf.Mail.Header, Conf.Mail.To,
-						subject, []byte(report_str))
-	if err != nil {
-		return err
-	}
-
-	if err := smtp.Send(); err != nil {
-		return err
-	}
+	fmt.Printf("Preview, Need -m to sending.\n\n======\n%s",subject)
+	fmt.Printf("\n+++++++++++++++++++++++++++++++++\n%s",report_str)
 	return nil
 }
 

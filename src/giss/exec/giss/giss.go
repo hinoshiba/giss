@@ -10,7 +10,6 @@ import (
 )
 
 var PrintAll bool
-var RepoAutosend bool
 var LineLimit int
 var RunMode string
 var Options []string
@@ -143,10 +142,8 @@ func okApiInit() bool {
 func init() {
 	var line_limit int
 	var print_all bool
-	var repo_autosend bool
 	flag.IntVar(&line_limit, "l", 20, "Specify the maximum number of display lines.")
 	flag.BoolVar(&print_all, "a", false, "Also displays detail or close.")
-	flag.BoolVar(&repo_autosend, "m", false, "Send the report by e-mail.")
 	flag.Usage = func() {
 		ComHelp()
 		os.Exit(0)
@@ -163,7 +160,6 @@ func init() {
 	Options = flag.Args()[1:]
 	LineLimit = line_limit
 	PrintAll = print_all
-	RepoAutosend = repo_autosend
 
 	co, err := conf.LoadUserConfig()
 	if err != nil {
