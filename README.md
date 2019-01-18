@@ -1,7 +1,11 @@
 # giss
 
-* Generic command interface for various issues management systems.(さまざまな問題管理システム用の汎用コマンドインターフェイス)
-* I aim to use various issues management systems with the same operation.(私は同じ操作でさまざまなシステムを使うことを目指しています。)
+* Generic command interface for various issues management systems.
+* I aim to use various issues management systems with the same operation.
+
+## giss term demo
+[demo](https://raw.githubusercontent.com/wiki/hinoshiba/giss/img/demo.gif)
+
 
 ## Supported services(対応中のサービス)
 
@@ -26,7 +30,7 @@
 
 ---
 
-## running sample
+## interactive mode sample
 ```bash
 # print issues list
 [hinoshiba@wk01 giss]$ giss ls
