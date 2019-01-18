@@ -51,7 +51,7 @@ func termMenu(wk goctx.Worker) {
 		case <-wk.RecvCancel():
 			return
 		case  ev := <-termwindow.Key:
-			termwindow.SetMsg("")
+	//		termwindow.SetMsg("")
 			switch ev.Key {
 			case termwindow.KeyCtrlN:
 				termwindow.SetActiveLine(winiss.MvInc())
@@ -99,6 +99,7 @@ func termMenu(wk goctx.Worker) {
 				winiss, err = termLs(closed_print)
 				if err != nil {
 					termwindow.SetErr(err)
+					continue
 				}
 				termwindow.SetMenu(winiss.Data)
 				termwindow.SetMsg("pulled issues")
@@ -130,7 +131,7 @@ func termMenu(wk goctx.Worker) {
 					termwindow.SetErr(err)
 					continue
 				}
-				termwindow.SetMsg("a possibility that it was updated. Please enter '$'.")
+				termwindow.SetMsg("commented")
 				termwindow.ReFlush()
 			case 'C':
 				id, v := winiss.GetData(winiss.Active)
@@ -194,10 +195,19 @@ func termMenu(wk goctx.Worker) {
 
 				termwindow.SetMsg("connect to %s/%s",
 					napicon.GetUrl(), napicon.GetRepositoryName())
+				buf := Apicon
 				Apicon = napicon
 				winiss, err = termLs(closed_print)
 				if err != nil {
 					termwindow.SetErr(err)
+					Apicon = buf
+					winiss, err = termLs(closed_print)
+					if err != nil {
+						termwindow.SetErr(err)
+						continue
+					}
+					termwindow.SetMenu(winiss.Data)
+					continue
 				}
 				termwindow.SetMenu(winiss.Data)
 				termwindow.SetMsg("checkined %s, pulled issues.", napicon.GetRepositoryName())
@@ -586,7 +596,14 @@ func inputRecode(wk goctx.Worker, title string) string {
 					buf = string(rbuf[:(len(rbuf) - 1)])
 				}
 				continue
+			case termwindow.KeySpace:
+				ev.Ch = ' '
+			case 0:
 			default:
+				continue
+			}
+			if ev.Ch == 0 {
+				continue
 			}
 			buf += string(ev.Ch)
 		}
@@ -610,7 +627,7 @@ func termOpen(id string) error {
 }
 
 func termCom(id string, com string) error {
-	scomment := lf2Esclf(onlyLF(string(com)))
+	scomment := lf2Esclf(onlyLF(com))
 	if err := Apicon.AddIssueComment(id, scomment); err != nil {
 		return err
 	}
@@ -632,8 +649,8 @@ func termLs(closed bool) (termwindow.Window, error) {
 	if err != nil {
 		return termwindow.Window{}, err
 	}
-	if len(iss) < 1 {
-		return termwindow.Window{}, nil
+	if len(iss) < 0 {
+		return termwindow.Window{}, msg.NewErr("issue not found")
 	}
 
 	var win termwindow.Window
