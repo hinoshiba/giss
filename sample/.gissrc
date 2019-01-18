@@ -5,22 +5,24 @@
 ## This is the alias name for interactively selecting the connection destination.
 ## これは、対話的に接続先を選択するためのエイリアス名です。
 
-#URL = "https://gitea.example.com/gitea/"
-## URL of API to connect
-## 接続するAPIのURL
-
 #Type = "Gitea" #Default type Gitea, Github, Redmine //tbc -> Gogs, Gitlab
 ## Type of API to connect
 ## 接続するAPIのタイプ
 ### Gitea, Github, Redmine
 
+#URL = "https://gitea.example.com/gitea/"
+## URL of API to connect
+## 接続するAPIのURL
+
+#Proxy = "http://proxy.example.com:8080"
+## When using Proxy, please set a value.
+## You can not seamlessly use os.environment.proxy for each server. Therefore, it is not used.
+## proxyを使う場合は設定してください
+## proxy環境変数では、接続先のサーバによってシームレスな切り替えができません。その為、使っていません。
+
 #Repos = [ "github/giss", "github/giss02", "github/giss03" ]
 ## Repository names to connect
 ## 接続するリポジトリ名たち
-
-#AutoLogin = true
-## Automatic cache registration after selecting the connection destination. Basically it is "true" and there is no problem.
-## 接続先選択後の自動キャッシュ登録。基本的にはtrueで問題はありません。
 
 #User = "miladdress@example.com"
 #Token = "YourToken"
@@ -29,20 +31,21 @@
 
 
 ## sample done
+# exmaple.local is internal server's
+# example.com   is external server's
 
 [Server.gitea]
-URL = "https://gitea.example.com/gitea/"
 Type = "Gitea" #Default type Gitea, Github, Redmine //tbc -> Gogs, Gitlab
+URL = "https://gitea.example.local/gitea/"
 Repos = [ "github/giss" ]
-AutoLogin = true
 User = "miladdress@example.com"
 Token = "YourToken"
 
 [Server.github]
-URL = "https://api.github.com/"
 Type = "Github" #Default type Gitea, Github, Redmine //tbc -> Gogs, Gitlab
+URL = "https://api.github.com/"
+Proxy = "http://proxy.example.local:8080"
 Repos = [ "hinoshiba/giss_test" ]
-AutoLogin = true
 User = "yourmailaddress@example.com"
 Token = "YourToken"
 
@@ -64,11 +67,3 @@ futter = """
 """
 targetRepository = [ "repo/issue-repo" , "user/mytasks" ]
 
-[Mail]
-MTA = "yourmta.example.com"
-Port = 25
-
-To = ["yourmailaddress@example.com", "hinoshiba@example.jp"]
-From = "own@example.com"
-Subject = "weekly issues report"
-Header = [""]

@@ -13,6 +13,7 @@ import (
 
 type Github struct {
 	url string
+	proxy string
 	repository string
 	user string
 	token string
@@ -85,6 +86,18 @@ func (self *Github) SetUrl(url string) {
 
 func (self *Github) setUrl(url string) {
 	self.url = url
+}
+
+func (self *Github) GetProxy() string {
+	return self.proxy
+}
+
+func (self *Github) SetProxy(proxy string) {
+	self.setProxy(proxy)
+}
+
+func (self *Github) setProxy(proxy string) {
+	self.proxy = proxy
 }
 
 func (self *Github) GetRepositoryName() string {
@@ -613,7 +626,7 @@ func (self *Github) reqHttp(method, url string, param []byte ) ([]byte,
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "token " + self.token)
 
-	client, err := httpcl.NewClient()
+	client, err := httpcl.NewClient(self.proxy)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -3,13 +3,13 @@ package httpcl
 import (
 	"time"
 	"net/http"
+	"net/url"
 	"net"
 	"crypto/tls"
 )
 
-func NewClient() (*http.Client, error) {
+func NewClient(ps string) (*http.Client, error) {
 	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
 		TLSHandshakeTimeout: 10 * time.Second,
 		Dial: (&net.Dialer{
@@ -17,5 +17,13 @@ func NewClient() (*http.Client, error) {
 			KeepAlive: 10 * time.Second,
 		}).Dial,
 	}
+	if ps != "" {
+		pu, err := url.Parse(ps)
+		if err != nil {
+			return nil, err
+		}
+		tr.Proxy = http.ProxyURL(pu)
+	}
+
 	return &http.Client{Transport: tr}, nil
 }

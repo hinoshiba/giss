@@ -20,9 +20,9 @@ type Conf struct {
 
 type GitServerConfig struct {
 	Url	string `toml:URL`
+	Proxy   string `toml:Proxy`
 	Type	string `toml:Type`
 	Repos	[]string `toml:Repos`
-	AutoLogin bool `toml:AutoLogin`
 	User	string `toml:User`
 	Token	string `toml:Token`
 }

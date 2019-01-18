@@ -528,6 +528,7 @@ func termCheckin(wk goctx.Worker) (apicon.Apicon, error) {
 	napicon.SetToken(Conf.Server[alias].Token)
 	napicon.SetRepositoryName(rpname)
 	napicon.SetUrl(Conf.Server[alias].Url)
+	napicon.SetProxy(Conf.Server[alias].Proxy)
 	return napicon, nil
 }
 

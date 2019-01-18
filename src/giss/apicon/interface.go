@@ -26,6 +26,8 @@ type Apicon interface {
 	SetUsername(string)
 	GetToken() string
 	SetToken(string)
+	GetProxy() string
+	SetProxy(string)
 	GetIssue(string) (issue.Issue, error)
 	GetIssues(bool, bool) ([]issue.Issue, error)
 	CreateIssue(issue.Issue) error

@@ -13,6 +13,7 @@ import (
 
 type Gitea struct {
 	url string
+	proxy string
 	repository string
 	user string
 	token string
@@ -83,6 +84,18 @@ func (self *Gitea) SetUrl(url string) {
 
 func (self *Gitea) setUrl(url string) {
 	self.url = url
+}
+
+func (self *Gitea) GetProxy() string {
+	return self.proxy
+}
+
+func (self *Gitea) SetProxy(proxy string) {
+	self.setProxy(proxy)
+}
+
+func (self *Gitea) setProxy(proxy string) {
+	self.proxy = proxy
 }
 
 func (self *Gitea) GetRepositoryName() string {
@@ -614,7 +627,7 @@ func (self *Gitea) reqHttp(method, url string, param []byte ) ([]byte,
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "token " + self.token)
 
-	client, err := httpcl.NewClient()
+	client, err := httpcl.NewClient(self.proxy)
 	if err != nil {
 		return nil, 0, err
 	}

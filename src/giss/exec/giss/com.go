@@ -187,10 +187,9 @@ func ComCheckin() error {
 
 	Cache = c
 	fmt.Printf("checkin :%s/%s\n", Cache.Url, Cache.Repo)
-	if Conf.Server[alias].AutoLogin {
-		fmt.Printf("autologin.....\n\n")
-		ComLogin()
-	}
+	fmt.Printf("autologin.....\n\n")
+	ComLogin()
+
 	return nil
 }
 
@@ -447,27 +446,6 @@ func ComLogin() error {
 		user = Conf.Server[Cache.Alias].User
 		token = Conf.Server[Cache.Alias].Token
 	}
-		/*
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Printf("Enter Username: ")
-	    	cruser, err := reader.ReadString('\n')
-		if err != nil {
-			return err
-		}
-		user := strings.Trim(cruser, " \n")
-		fmt.Printf("Enter password:")
-	 	passwd, err := terminal.ReadPassword(0)
-		if err != nil {
-			return err
-	 	}
-		fmt.Printf("\n\n")
-		if err := Apicon.Login(user, string(passwd)); err != nil {
-			warn("login failed")
-			return err
-		}
-		user = Apicon.GetUser()
-		token = Apicon.GetToken()
-		*/
 
 	if user == "" {
 		fmt.Printf("can't autoload username.\n")

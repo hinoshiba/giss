@@ -14,6 +14,7 @@ import (
 
 type Redmine struct {
 	url string
+	proxy string
 	repository string
 	user string
 	token string
@@ -80,6 +81,18 @@ func (self *Redmine) SetUrl(url string) {
 
 func (self *Redmine) setUrl(url string) {
 	self.url = url
+}
+
+func (self *Redmine) GetProxy() string {
+	return self.proxy
+}
+
+func (self *Redmine) SetProxy(proxy string) {
+	self.setProxy(proxy)
+}
+
+func (self *Redmine) setProxy(proxy string) {
+	self.proxy = proxy
 }
 
 func (self *Redmine) GetRepositoryName() string {
@@ -641,7 +654,7 @@ func (self *Redmine) reqHttp(method, url string, param []byte ) ([]byte,
 	req.Header.Set("Content-Type", "text/xml")
 	req.Header.Set("X-Redmine-API-Key", self.token)
 
-	client, err := httpcl.NewClient()
+	client, err := httpcl.NewClient(self.proxy)
 	if err != nil {
 		return nil, 0, err
 	}

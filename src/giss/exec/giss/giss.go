@@ -185,6 +185,7 @@ func init() {
 	Apicon.SetToken(ca.Token)
 	Apicon.SetRepositoryName(ca.Repo)
 	Apicon.SetUrl(ca.Url)
+	Apicon.SetProxy(Conf.Server[ca.Alias].Proxy)
 
 }
 
