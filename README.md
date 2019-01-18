@@ -4,7 +4,7 @@
 * I aim to use various issues management systems with the same operation.
 
 ## giss term demo
-<img src="https://raw.githubusercontent.com/wiki/hinoshiba/giss/img/demo.gif" width="width="320px"">
+![demo](https://raw.githubusercontent.com/wiki/hinoshiba/giss/img/demo.gif | width=320)
 
 
 ## Supported services(対応中のサービス)
