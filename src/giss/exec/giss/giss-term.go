@@ -7,7 +7,6 @@ import (
 	"giss/values"
 	"giss/msg"
 	"strings"
-	"fmt"
 )
 
 func gissterm() error {
@@ -20,10 +19,8 @@ func gissterm() error {
 	go termwindow.Start(own.NewWorker())
 	defer termwindow.Close()
 
-	termwindow.SetTitle(values.VersionText)
-	termwindow.SetMsg("test init")
-
-
+	termwindow.SetTitle(values.TermTitle)
+	termwindow.SetMsg("initializing")
 	go termMenu(own.NewWorker())
 
 	own.Wait()
@@ -31,11 +28,17 @@ func gissterm() error {
 }
 func termMenu(wk goctx.Worker) {
 	defer wk.Done()
-	issues, err := termLs(false)
+
+	var startmsg termwindow.Window
+	startmsg.SetTitle("Message from developer")
+	startmsg.Data.Body = str0d0a2bytearr(values.StartTerm)
+	termBody(wk.NewWorker(), startmsg)
+
+	winiss, err := termLs(false)
 	if err != nil {
 		termwindow.SetErr(err)
 	}
-	termwindow.SetMenu(issues.Data)
+	termwindow.SetMenu(winiss.Data)
 	var closed_print = false
 
 	for {
@@ -45,9 +48,9 @@ func termMenu(wk goctx.Worker) {
 		case  ev := <-termwindow.Key:
 			switch ev.Key {
 			case termwindow.KeyCtrlN:
-				termwindow.SetActiveLine(issues.MvInc())
+				termwindow.SetActiveLine(winiss.MvInc())
 			case termwindow.KeyCtrlP:
-				termwindow.SetActiveLine(issues.MvDec())
+				termwindow.SetActiveLine(winiss.MvDec())
 			case termwindow.KeySpace:
 				if closed_print {
 					closed_print = false
@@ -57,12 +60,12 @@ func termMenu(wk goctx.Worker) {
 				closed_print = true
 				termwindow.SetMsg("print with closed.")
 			case termwindow.KeyEnter:
-				id, v := issues.GetData(issues.Active)
+				id, v := winiss.GetData(winiss.Active)
 				if len(v) < 0 {
 					termwindow.SetMsg("target not found")
 					continue
 				}
-				is, err := termShow(id)
+				is, err := getIssueWindow(id)
 				if err != nil {
 					termwindow.SetErr(err)
 					continue
@@ -73,22 +76,31 @@ func termMenu(wk goctx.Worker) {
 				termwindow.ReFlush()
 			}
 			switch ev.Ch {
+			case '?':
+				var help termwindow.Window
+				help.SetTitle("help window")
+				help.Data.Body = str0d0a2bytearr(values.HelpTerm)
+				termwindow.SetMsg("help")
+				termBody(wk.NewWorker(), help)
+				termwindow.ReFlush()
 			case '$':
+				termwindow.SetMsg("connect to %s/%s",
+					Apicon.GetUrl(), Apicon.GetRepositoryName())
 				var err error
-				issues, err = termLs(closed_print)
+				winiss, err = termLs(closed_print)
 				if err != nil {
 					termwindow.SetErr(err)
 				}
-				termwindow.SetMenu(issues.Data)
-				termwindow.SetMsg("updated issues data.")
+				termwindow.SetMenu(winiss.Data)
+				termwindow.SetMsg("pulled issues")
 			case 'j':
-				termwindow.SetActiveLine(issues.MvInc())
+				termwindow.SetActiveLine(winiss.MvInc())
 			case 'k':
-				termwindow.SetActiveLine(issues.MvDec())
+				termwindow.SetActiveLine(winiss.MvDec())
 			case 'G':
-				termwindow.SetActiveLine(issues.MvBottom())
+				termwindow.SetActiveLine(winiss.MvBottom())
 			case 'g':
-				termwindow.SetActiveLine(issues.MvTop())
+				termwindow.SetActiveLine(winiss.MvTop())
 			case 'n':
 				title := inputRecode(wk.NewWorker(), "NewIssueTitle")
 				body := inputRecode(wk.NewWorker(), "NewIssueBody")
@@ -96,10 +108,10 @@ func termMenu(wk goctx.Worker) {
 					termwindow.SetErr(err)
 					continue
 				}
-				termwindow.SetMsg("Created Issue.")
+				termwindow.SetMsg("a possibility that it was updated. Please enter '$'.")
 				termwindow.ReFlush()
 			case 'c':
-				id, v := issues.GetData(issues.Active)
+				id, v := winiss.GetData(winiss.Active)
 				if len(v) < 0 {
 					termwindow.SetMsg("target not found")
 					continue
@@ -109,10 +121,10 @@ func termMenu(wk goctx.Worker) {
 					termwindow.SetErr(err)
 					continue
 				}
-				termwindow.SetMsg("commented.")
+				termwindow.SetMsg("a possibility that it was updated. Please enter '$'.")
 				termwindow.ReFlush()
 			case 'C':
-				id, v := issues.GetData(issues.Active)
+				id, v := winiss.GetData(winiss.Active)
 				if len(v) < 0 {
 					termwindow.SetMsg("target not found")
 					continue
@@ -121,10 +133,10 @@ func termMenu(wk goctx.Worker) {
 					termwindow.SetErr(err)
 					continue
 				}
-				termwindow.SetMsg("update detected")
+				termwindow.SetMsg("a possibility that it was updated. Please enter '$'.")
 				termwindow.ReFlush()
 			case 'O':
-				id, v := issues.GetData(issues.Active)
+				id, v := winiss.GetData(winiss.Active)
 				if len(v) < 0 {
 					termwindow.SetMsg("target not found")
 					continue
@@ -133,18 +145,276 @@ func termMenu(wk goctx.Worker) {
 					termwindow.SetErr(err)
 					continue
 				}
-				termwindow.SetMsg("update detected")
+				termwindow.SetMsg("a possibility that it was updated. Please enter '$'.")
+				termwindow.ReFlush()
+			case 'L':
+				id, v := winiss.GetData(winiss.Active)
+				if len(v) < 0 {
+					termwindow.SetErrStr("target not found")
+					continue
+				}
+				termwindow.SetMsg("called label selecter : #%s", id)
+				err := termLabel(wk.NewWorker(), id)
+				if err != nil {
+					termwindow.SetErr(err)
+					continue
+				}
+				termwindow.SetMsg("a possibility that it was updated. Please enter '$'.")
+				termwindow.ReFlush()
+			case 'M':
+				id, v := winiss.GetData(winiss.Active)
+				if len(v) < 0 {
+					termwindow.SetErrStr("target not found")
+					continue
+				}
+				termwindow.SetMsg("called milestone selecter : #%s", id)
+				err := termMilestone(wk.NewWorker(), id)
+				if err != nil {
+					termwindow.SetErr(err)
+					continue
+				}
+				termwindow.SetMsg("a possibility that it was updated. Please enter '$'.")
 				termwindow.ReFlush()
 			case 'q':
 				wk.Cancel()
 				return
+			default:
+				termwindow.SetErrStr("undefined key. please enter to '?'")
 			}
 		default:
 		}
 	}
 }
 
-func termBody(wk goctx.Worker, is termwindow.Lines) {
+func getActiveLabels(id string) ([]string, error) {
+	is, err := Apicon.GetIssue(id)
+	if err != nil {
+		return []string{}, err
+	}
+	if is.State.Name == "" {
+		return []string{}, msg.NewErr("undefined issue")
+	}
+	var lbsname []string
+	for _, lb := range is.Labels {
+		lbsname = append(lbsname, lb.Name)
+	}
+	return lbsname, nil
+}
+
+func getActiveMilestone(id string) (string, error) {
+	is, err := Apicon.GetIssue(id)
+	if err != nil {
+		return "", err
+	}
+	if is.State.Name == "" {
+		return "", msg.NewErr("undefined issue")
+	}
+	return is.Milestone.Title, nil
+}
+
+func getIssueWindow(id string) (termwindow.Window, error) {
+	issue, err := Apicon.GetIssue(id)
+	if err != nil {
+		return termwindow.Window{}, err
+	}
+	if issue.State.Name == "" {
+		return termwindow.Window{}, msg.NewErr("undefined issue")
+	}
+
+	var win termwindow.Window
+	win.Data.Title = []byte(msg.NewStr("Issue #%s detail window", id))
+	sis := issue.SprintMd()
+	sisml := strings.Split(sis, "\n")
+	for _, sisl := range sisml {
+		win.Append("", []byte(sisl))
+	}
+
+	return win, nil
+}
+
+func getLabelWindow(lbsname []string) (termwindow.Window, error) {
+	lbs, err := Apicon.GetLabels()
+	if err != nil {
+		return termwindow.Window{}, err
+	}
+	if len(lbs) < 1 {
+		return termwindow.Window{}, msg.NewErr("undefined labels")
+	}
+
+	var win termwindow.Window
+	win.SetTitle("label window")
+	for _, lb := range lbs {
+		head := "  "
+		if contains(lbsname, lb.Name) {
+			head = "* "
+		}
+		win.Append(lb.Name, []byte(head + lb.Name))
+	}
+	return win, nil
+}
+
+func getMilestonesWindow(mlname string) (termwindow.Window, error) {
+	mls, err := Apicon.GetMilestones()
+	if err != nil {
+		return termwindow.Window{}, err
+	}
+	if len(mls) < 1 {
+		return termwindow.Window{}, msg.NewErr("undefined milestone")
+	}
+
+	var win termwindow.Window
+	win.SetTitle("milestone window")
+	for _, ml := range mls {
+		head := "  "
+		if ml.Title == mlname {
+			head = "* "
+		}
+		win.Append(ml.Title, []byte(head + ml.Title))
+	}
+	return win, nil
+}
+
+func termLabel(wk goctx.Worker, id string) error {
+	defer wk.Done()
+
+	lbs, err := getActiveLabels(id)
+	if err != nil {
+		return err
+	}
+	win, err := getLabelWindow(lbs)
+	if err != nil {
+		return err
+	}
+	termwindow.SetBody(win.Data)
+	defer termwindow.UnsetBody()
+
+	for {
+		select {
+		case <-wk.RecvCancel():
+			return nil
+		case  ev := <-termwindow.Key:
+			switch ev.Key {
+			case termwindow.KeyCtrlN:
+				termwindow.SetActiveLine(win.MvInc())
+			case termwindow.KeyCtrlP:
+				termwindow.SetActiveLine(win.MvDec())
+			case termwindow.KeySpace:
+				lb, _ := win.GetData(win.Active)
+				if len(lb) < 0 {
+					termwindow.SetErrStr("target not found")
+					continue
+				}
+				if contains(lbs, lb) {
+					err := Apicon.DelLabel(id, lb)
+					if err != nil {
+						termwindow.SetErr(err)
+						continue
+					}
+				} else {
+					err := Apicon.AddLabel(id, lb)
+					if err != nil {
+						termwindow.SetErr(err)
+						continue
+					}
+				}
+				var err error
+				lbs, err = getActiveLabels(id)
+				if err != nil {
+					return err
+				}
+				win, err = getLabelWindow(lbs)
+				if err != nil {
+					return err
+				}
+				termwindow.SetBody(win.Data)
+			}
+			switch ev.Ch {
+			case 'j':
+				termwindow.SetActiveLine(win.MvInc())
+			case 'k':
+				termwindow.SetActiveLine(win.MvDec())
+			case 'G':
+				termwindow.SetActiveLine(win.MvBottom())
+			case 'g':
+				termwindow.SetActiveLine(win.MvTop())
+			case 'q':
+				return nil
+			}
+		}
+	}
+}
+
+func termMilestone(wk goctx.Worker, id string) error {
+	defer wk.Done()
+
+	mlname, err := getActiveMilestone(id)
+	if err != nil {
+		return err
+	}
+	win, err := getMilestonesWindow(mlname)
+	if err != nil {
+		return err
+	}
+	termwindow.SetBody(win.Data)
+	defer termwindow.UnsetBody()
+
+	for {
+		select {
+		case <-wk.RecvCancel():
+			return nil
+		case  ev := <-termwindow.Key:
+			switch ev.Key {
+			case termwindow.KeyCtrlN:
+				termwindow.SetActiveLine(win.MvInc())
+			case termwindow.KeyCtrlP:
+				termwindow.SetActiveLine(win.MvDec())
+			case termwindow.KeySpace:
+				nml, _ := win.GetData(win.Active)
+				if len(nml) < 0 {
+					termwindow.SetErrStr("target not found")
+					continue
+				}
+				if nml == mlname {
+					err := Apicon.DeleteMilestone(id)
+					if err != nil {
+						termwindow.SetErr(err)
+						continue
+					}
+				} else {
+					err := Apicon.UpdateMilestone(id, nml)
+					if err != nil {
+						termwindow.SetErr(err)
+						continue
+					}
+				}
+				var err error
+				mlname, err = getActiveMilestone(id)
+				if err != nil {
+					return err
+				}
+				win, err = getMilestonesWindow(mlname)
+				if err != nil {
+					return err
+				}
+				termwindow.SetBody(win.Data)
+			}
+			switch ev.Ch {
+			case 'j':
+				termwindow.SetActiveLine(win.MvInc())
+			case 'k':
+				termwindow.SetActiveLine(win.MvDec())
+			case 'G':
+				termwindow.SetActiveLine(win.MvBottom())
+			case 'g':
+				termwindow.SetActiveLine(win.MvTop())
+			case 'q':
+				return nil
+			}
+		}
+	}
+}
+
+func termBody(wk goctx.Worker, is termwindow.Window) {
 	defer wk.Done()
 
 	termwindow.SetBody(is.Data)
@@ -209,47 +479,25 @@ func inputRecode(wk goctx.Worker, title string) string {
 	}
 }
 
-func termShow(id int) (termwindow.Lines, error) {
-	sid := fmt.Sprintf("%v", id)
-	issue, err := Apicon.GetIssue(sid)
-	if err != nil {
-		return termwindow.Lines{}, err
-	}
-	if issue.State.Name == "" {
-		return termwindow.Lines{}, msg.NewErr("undefined issue")
-	}
 
-	var lines termwindow.Lines
-	lines.Data.Title = []byte(msg.NewStr("Issue #%s detail window", sid))
-	sis := issue.SprintMd()
-	sisml := strings.Split(sis, "\n")
-	for _, sisl := range sisml {
-		lines.Append(0, []byte(sisl))
-	}
 
-	return lines, nil
-}
-
-func termClose(id int) error {
-	sid := fmt.Sprintf("%v", id)
-	if err := Apicon.DoCloseIssue(sid); err != nil {
+func termClose(id string) error {
+	if err := Apicon.DoCloseIssue(id); err != nil {
 		return err
 	}
 	return nil
 }
 
-func termOpen(id int) error {
-	sid := fmt.Sprintf("%v", id)
-	if err := Apicon.DoOpenIssue(sid); err != nil {
+func termOpen(id string) error {
+	if err := Apicon.DoOpenIssue(id); err != nil {
 		return err
 	}
 	return nil
 }
 
-func termCom(id int, com string) error {
-	sid := fmt.Sprintf("%v", id)
+func termCom(id string, com string) error {
 	scomment := lf2Esclf(onlyLF(string(com)))
-	if err := Apicon.AddIssueComment(sid, scomment); err != nil {
+	if err := Apicon.AddIssueComment(id, scomment); err != nil {
 		return err
 	}
 	return nil
@@ -265,22 +513,41 @@ func termCreate(title string, body string) error {
 	return nil
 }
 
-func termLs(closed bool) (termwindow.Lines, error) {
-	issues, err := Apicon.GetIssues(false, closed)
+func termLs(closed bool) (termwindow.Window, error) {
+	iss, err := Apicon.GetIssues(false, closed)
 	if err != nil {
-		return termwindow.Lines{}, err
+		return termwindow.Window{}, err
 	}
-	if len(issues) < 1 {
-		return termwindow.Lines{}, nil
+	if len(iss) < 1 {
+		return termwindow.Window{}, nil
 	}
 
-	var lines termwindow.Lines
-	for _, is := range issues {
+	var win termwindow.Window
+	for _, is := range iss{
 		str, err := is.SprintHead()
 		if err != nil {
-			return termwindow.Lines{}, err
+			return termwindow.Window{}, err
 		}
-		lines.Append(int(is.Num), []byte(str))
+		win.Append(msg.NewStr("%v", is.Num), []byte(str))
 	}
-	return lines, nil
+	return win, nil
+}
+
+func contains(arr []string, t string) bool {
+	for _, v := range arr {
+		if v == t {
+			return true
+		}
+	}
+	return false
+}
+
+func str0d0a2bytearr(str string) [][]byte {
+	ls := strings.Split(onlyLF(str), "\n")
+
+	var ret [][]byte
+	for _, l := range ls {
+		ret = append(ret, []byte(l))
+	}
+	return ret
 }

@@ -2,6 +2,7 @@ package values
 
 var Version = "[null]"
 var VersionText string = "Hinoshiba(c) giss command "
+var TermTitle = "[giss termwindow mode]  " + VersionText
 var DevStr string
 var HelpText string = `---------------------------------------------------------
 
@@ -59,10 +60,62 @@ Whether to create a description is undecided.
 ---------------------------------------------------------
 `
 
+var StartTerm string = `readme
+
+---
+<q> to close this window.
+---
+
+<giss term> is under development function.
+If you find a problem, please report to me at the github.
+Issues : https://github.com/hinoshiba/giss/issues
+
+I am aware of the fact that can make the source code more beautiful because it scribbled.
+There is also recognition that you need to streamline http requests and make types more efficient.
+I do not anticipate reference errors etc.., so I'd like you to tell me.
+
+---
+Please <q> to close this window.
+---
+`
+
+var HelpTerm string = `Basic operation
+ q                      quit active window. if there is only one active window, exit.
+ <Esc>                  exit giss term.
+ j or Ctrl + N          move to up.
+ k or Ctrl + P          move to down.
+ G                      move to bottom.
+ g                      move to top.
+
+issue list operation
+ $                      connect to the server and get the latest issues.
+ <Eneter>               display the issue detail at current line.
+ n                      create new issue.
+ c                      comment the issue at current line.
+ O                      change to 'open' at current line.
+ C                      change to 'closed' at current line.
+ M                      the milestone selection screen becomes active.
+                          by enter a <space> you can select a milestone.
+ L                      the label selection screen becomes active.
+                          by enter a <space> you can select a label.
+
+---------------------------------------------------------
+ - Must be setup in "~/.gissrc ".
+   Temporary files are managed under "~/.giss/".
+
+ - There is also an interactive mode.
+   if you want to use interactive mode , please enter the 'giss help' at your prompt.
+
+If you have any problems, please contact to <https://github.com/hinoshiba/giss/>.
+Whether to create a description is undecided.
+---------------------------------------------------------
+`
+
 func init() {
 	if DevStr != "" {
 		Version += "." + DevStr
 	}
 
 	VersionText += Version
+	TermTitle += Version
 }
